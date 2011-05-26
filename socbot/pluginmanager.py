@@ -213,6 +213,9 @@ class PluginManager(object):
         if "instance" in moduleinfo and moduleinfo["instance"]:
             raise PluginAlreadyEnabled, name
 
+        moduleinfo["info"]["general"]["enabled"] = True
+        moduleinfo["info"].write()
+
         self._loadplugin(moduleinfo)
 
         moduleinfo["instance"].initialize()
@@ -235,6 +238,9 @@ class PluginManager(object):
 
         moduleinfo["instance"].disabling()
         self._killplugin(moduleinfo)
+
+        moduleinfo["info"]["general"]["enabled"] = False
+        moduleinfo["info"].write()
 
         return True
 
@@ -315,10 +321,15 @@ class PluginManager(object):
               issubclass(env["Plugin"], pluginbase.Base):
             klass = moduleinfo["env"]["Plugin"]
 
-            moduleinfo["instance"] = klass(self, moduleinfo)
-            name = moduleinfo["info"]["general"]["name"].upper()
+            name = moduleinfo["info"]["general"]["name"]
 
-            self.moduleinfo[name] = moduleinfo
+            if moduleinfo["info"]["general"]["enabled"]:
+                moduleinfo["instance"] = klass(self, moduleinfo)
+            else:
+                log.info("plugin {0} is disabled in it's config. Not instantiating it.".format(
+                    name))
+
+            self.moduleinfo[name.upper()] = moduleinfo
         else:
             log.warning("Class 'Plugin' doesn't exist in module {0}, "
                 "or it doesn't subclass the defined "

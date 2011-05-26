@@ -11,6 +11,7 @@ from socbot.usermanager import UserManager
 
 class Bot(irc.IRCClient):
     nickname = "SocBot"
+    sourceURL = "http://github.com/entityreborn/SocBot/"
 
     _ping_deferred = None
     _reconnect_deferred = None

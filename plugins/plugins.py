@@ -37,7 +37,7 @@ class Plugin(Base):
         if not self.userHasPerm(user, command):
             return "You have insufficient privileges."
 
-        if len(parts) == 2:
+        if len(parts):
             plugname = parts.pop(0)
 
             if command == "enable":
