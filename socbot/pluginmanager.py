@@ -154,7 +154,8 @@ class PluginManager(object):
 
         for plug in self.moduleinfo.values():
             try:
-                plug["instance"].beforeReload()
+                if "instance" in plug and plug["instance"]:
+                    plug["instance"].beforeReload()
             except Exception:
                 traceback.print_exc(5)
 
@@ -175,7 +176,8 @@ class PluginManager(object):
 
         for plug in self.moduleinfo.values():
             try:
-                plug["instance"].initialize()
+                if "instance" in plug and plug["instance"]:
+                    plug["instance"].initialize()
             except Exception:
                 traceback.print_exc(5)
 
@@ -184,7 +186,8 @@ class PluginManager(object):
 
         for plug in self.moduleinfo.values():
             try:
-                plug["instance"].finalize()
+                if "instance" in plug and plug["instance"]:
+                    plug["instance"].finalize()
             except Exception:
                 traceback.print_exc(5)
 
