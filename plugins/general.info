@@ -1,0 +1,7 @@
+[general]
+name = General # human friendly name
+modulefile = general.py # Actual module to import to load plugins
+
+[permissions]
+join = normal
+part = normal

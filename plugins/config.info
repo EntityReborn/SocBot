@@ -1,0 +1,6 @@
+[general]
+name = Config # human friendly name
+modulefile = config.py # Actual module to import to load plugins
+
+[permissions]
+config = "owner"

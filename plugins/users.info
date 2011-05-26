@@ -1,0 +1,3 @@
+[general]
+name = Users # human friendly name
+modulefile = users.py # Actual module to import to load plugins

@@ -1,0 +1,3 @@
+[general]
+name = plugins # human friendly name
+modulefile = plugins.py # Actual module to import to load plugins

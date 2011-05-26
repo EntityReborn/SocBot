@@ -1,0 +1,13 @@
+[general]
+
+[permtemplates]
+    [[normal]]
+        permissions = ["seen.seen",]
+    [[god]]
+        permissions = ["*",]
+
+[users]
+    [[someone]]
+        email = 'some@one.com'
+        permissions = ["*",]
+        passhash = '054e157856ded8d5e48fad51913c6e1f10a948b2'
