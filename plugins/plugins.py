@@ -1,4 +1,4 @@
-from socbot.pluginbase import Base
+from socbot.pluginbase import Base, InsuffPerms, BadParams
 from socbot.pluginmanager import NoSuchPlugin, PluginAlreadyEnabled, PluginAlreadyDisabled
 
 class Plugin(Base):
@@ -6,14 +6,13 @@ class Plugin(Base):
         self.registerTrigger(self.on_reload, "RELOAD")
         self.registerTrigger(self.on_enabledisable, "DISABLE", "ENABLE")
 
-    def on_reload(self, bot, user, channel, message, inprivate):
+    def on_reload(self, bot, user, details):
         """RELOAD [<pluginname>] - Reload plugins"""
-
-        parts = message.split()
+        parts = details["splitmsg"]
         command = parts.pop(0).lower()
 
         if not self.userHasPerm(user, command):
-            return "You have insufficient privileges."
+            raise InsuffPerms, "plugins."+command
 
         if not parts:
             self.manager.reloadPlugins()
@@ -25,36 +24,36 @@ class Plugin(Base):
             except NoSuchPlugin:
                 return "No such plugin: {0}".format(plugname)
         else:
-            return self.on_reload.__doc__
+            raise BadParams
 
-        return "Done."
+        return True
 
-    def on_enabledisable(self, bot, user, channel, message, inprivate):
+    def on_enabledisable(self, bot, user, details):
         """{DIS,EN}ABLE <pluginname> - Enable or disable a plugin by name. The plugin is completely unloaded when disabled."""
-        parts = message.lower().split()
-        command = parts.pop(0)
+        parts = details["splitmsg"]
+        command = parts.pop(0).lower()
 
         if not self.userHasPerm(user, command):
-            return "You have insufficient privileges."
+            raise InsuffPerms, "plugins."+command
 
-        if len(parts):
-            plugname = parts.pop(0)
+        if not parts:
+            raise BadParams
 
-            if command == "enable":
-                try:
-                    self.manager.enablePlug(plugname)
-                except NoSuchPlugin:
-                    return "No such plugin, '{0}'.".format(plugname)
-                except PluginAlreadyEnabled:
-                    return "'{0}' already enabled.".format(plugname)
-            elif command == "disable":
-                try:
-                    self.manager.disablePlug(plugname)
-                except NoSuchPlugin:
-                    return "No such plugin, '{0}'.".format(plugname)
-                except PluginAlreadyEnabled:
-                    return "'{0}' already disabled.".format(plugname)
+        plugname = parts.pop(0).lower()
 
-            return "Done."
-        else:
-            return self.on_enabledisable.__doc__
+        if command == "enable":
+            try:
+                self.manager.enablePlug(plugname)
+            except NoSuchPlugin:
+                return "No such plugin, '{0}'.".format(plugname)
+            except PluginAlreadyEnabled:
+                return "'{0}' already enabled.".format(plugname)
+        elif command == "disable":
+            try:
+                self.manager.disablePlug(plugname)
+            except NoSuchPlugin:
+                return "No such plugin, '{0}'.".format(plugname)
+            except PluginAlreadyEnabled:
+                return "'{0}' already disabled.".format(plugname)
+
+        return True

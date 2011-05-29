@@ -1,27 +1,30 @@
-from socbot.pluginbase import Base
+from socbot.pluginbase import Base, InsuffPerms, BadParams
 from socbot.tools import isChannel
 
 class Plugin(Base):
     def initialize(self, *args, **kwargs):
+        self.registerTrigger(self.on_ping, "PING")
         self.registerTrigger(self.on_joinpart, "JOIN", "PART")
         self.registerTrigger(self.on_help, "HELP", "COMMANDS")
 
-    def on_help(self, bot, user, channel, message, inprivate):
+    def on_ping(self, bot, user, details):
+        """PING - Ask the bot to respond with 'Pong'"""
+        return "Pong"
+
+    def on_help(self, bot, details):
         """{HELP, COMMANDS} -  Show commands known to the bot"""
         commands = ", ".join([x for x in self.manager.triggers.keys() if x != "TRIG_UNKNOWN"])
         msg = "Commands I am aware of: {0}".format(commands)
+
         return msg
 
-    def on_joinpart(self, bot, user, channel, message, inprivate):
+    def on_joinpart(self, bot, user, details):
         """{JOIN, PART} <channel> [<key or message>] - Join or leave a channel. """
-        parts = message.split()
+        parts = details["splitmsg"]
         command = parts.pop(0).lower()
 
-        if not user.loggedIn():
-            return "You need to log in first!"
-
         if not self.userHasPerm(user, command):
-            return "You have insufficient privileges."
+            raise InsuffPerms, "general."+command
 
         if command == "join":
             if parts:
@@ -34,27 +37,27 @@ class Plugin(Base):
 
                 bot.join(chan, message)
             else:
-                return self.on_joinpart.__doc__
+                raise BadParams
 
-            return "Done."
+            return True
 
         elif command == "part":
             if parts:
                 if isChannel(parts[0]):
                     chan = parts.pop(0)
                 else:
-                    chan = channel
+                    chan = details["channel"]
 
                 if parts:
                     message = " ".join(parts)
                 else:
                     message = None
             else:
-                return self.on_joinpart.__doc__
+                raise BadParams
 
             bot.leave(chan, message)
         else:
-            return self.on_joinpart.__doc__
+            raise BadParams
 
-        if channel.lower() == bot.nickname.lower():
-            return "Done."
+        if details["channel"].lower() == bot.nickname.lower():
+            return True

@@ -1,3 +1,9 @@
+class InsuffPerms(Exception):
+    """The user does not have the required permissions."""
+
+class BadParams(Exception):
+    """The supplied parameters are not correct"""
+
 class Base(object):
     def __init__(self, manager, info):
         self.manager = manager

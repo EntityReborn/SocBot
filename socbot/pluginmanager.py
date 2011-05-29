@@ -105,15 +105,14 @@ class PluginManager(object):
         func = self._funcByPath(dotpath)
 
         if func:
-            try:
-                func(*args, **kwargs)
-            except Exception:
-                traceback.print_exc(5)
+            func(*args, **kwargs)
+            return True
         else:
             log.error("path '{0}' not found".format(dotpath))
+            return False
 
 
-    def triggerTrigger(self, trigger, *args, **kwargs):
+    def triggerTrigger(self, trigger):
         log.debug("triggering '{0}'".format(trigger))
 
         trigs = self.triggers[trigger.upper()]
@@ -123,10 +122,7 @@ class PluginManager(object):
         elif not trigs:
             return False
 
-        try:
-            return trigs[0](*args, **kwargs)
-        except Exception:
-            log.exception("Exception in {0}".format(trigs[0].__name__))
+        return trigs[0]
 
 
     def triggerEvent(self, event, *args, **kwargs):

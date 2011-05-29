@@ -1,26 +1,30 @@
-from socbot.pluginbase import Base
+from socbot.pluginbase import Base, InsuffPerms, BadParams
 from socbot.config import PathDoesntExist
 
 class Plugin(Base):
     def initialize(self, *args, **kwargs):
         self.registerTrigger(self.on_config, "CONFIG")
 
-    def on_config(self, bot, user, channel, message, inprivate):
+    def on_config(self, bot, user, details):
         """CONFIG PLUGIN|BASE <...>"""
-        parts = message.split()
+        parts = details["splitmsg"]
         command = parts.pop(0).lower()
 
         if not self.userHasPerm(user, command):
-            return "You have insufficient privileges."
+            raise InsuffPerms, "config."+command
+
+        if not parts:
+            raise BadParams
 
         type = parts.pop(0).upper()
-        if type == "PLUGIN":
-            return self.on_plugconf(bot, user, channel, parts, inprivate)
-        elif type == "BASE":
-            return self.on_baseconf(bot, user, channel, parts, inprivate)
 
-    def on_plugconf(self, bot, user, channel, message, inprivate):
-        parts = message.split()[1:]
+        if type == "PLUGIN":
+            return self.on_plugconf(bot, user, details)
+        elif type == "BASE":
+            return self.on_baseconf(bot, user, details)
+
+    def on_plugconf(self, bot, user, details):
+        parts = details["splitmsg"]
         plugname = parts.pop(0).upper()
 
         if not plugname in self.manager.moduleinfo:
@@ -28,9 +32,10 @@ class Plugin(Base):
 
         plug = self.manager.moduleinfo[plugname.upper()]
 
-    def on_baseconf(self, bot, user, channel, parts, inprivate):
+    def on_baseconf(self, bot, user, details):
         """CONFIG BASE <some.path> [SET <data>] - Reply with base config data, or set data if SET is used."""
         # CONFIG BASE general.commandchars set ^
+        parts = details["splitmsg"]
         path = parts.pop(0).lower()
 
         section = bot.factory.sstate["baseconfig"]
@@ -49,16 +54,17 @@ class Plugin(Base):
 
                 return self._respond(path, section)
             else:
-                return self.on_baseconf.__doc__
+                raise BadParams
+
         elif len(parts) == 1:
             return self._respond(path, section)
         else:
-            return self.on_baseconf.__doc__
+            raise BadParams
 
     def _respond(self, path, section):
         config = section.getByPath(path.split("."))
 
-        if isinstance(config, dict):
+        if isinstance(config, (dict, tuple)):
             line = ", ".join(config.keys())
         else:
             line = ", ".join(config)

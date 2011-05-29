@@ -1,29 +1,30 @@
 import pywhois
 
-from socbot.pluginbase import Base # Required
+from socbot.pluginbase import Base, BadParams
 
 class Plugin(Base): # Must subclass Base
     def initialize(self, *args, **kwargs):
-        # Call `on_source` when a user says "source" to me
         self.registerTrigger(self.on_whois, "WHOIS")
 
-    def on_whois(self, bot, user, channel, message, inprivate):
+    def on_whois(self, bot, user, details):
         """WHOIS <domain> - Get info about a domain"""
-        parts = message.split()
+        parts = details["splitmsg"]
         command = parts.pop(0)
 
-        if parts:
-            name = parts.pop(0)
-            dom = pywhois.whois(name)
-            try:
-                emails = ", ".join(set(dom.emails))
+        if not parts:
+            raise BadParams
 
-                reply = "Registrar: {0}, domain: {1}, emails: [ {2} ], nameservers: [ {3} ]. ".format(
-                    dom.registrar[0], dom.domain_name[0], emails, ", ".join(dom.name_servers))
-                reply += "More info available at http://who.is/whois/{0}/".format(name)
+        name = parts.pop(0)
+        dom = pywhois.whois(name)
 
-                return reply
-            except IndexError:
-                return "The data for this domain is invalid."
-        else:
-            return self.on_whois.__doc__
+        try:
+            emails = ", ".join(set([x.strip() for x in dom.emails]))
+            ns = ", ".join(set([x.strip() for x in dom.name_servers]))
+
+            reply = "Registrar: {0}, domain(s): {1}, email(s): [ {2} ], nameserver(s): [ {3} ]. ".format(
+                dom.registrar[0].strip(), dom.domain_name[0].strip(), emails, ns)
+            reply += "More info available at http://who.is/whois/{0}/".format(name)
+
+            return reply
+        except IndexError:
+            return "The data for this domain is invalid."

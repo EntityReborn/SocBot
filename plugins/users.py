@@ -2,7 +2,7 @@
 # it being a plugin. While still in alpha stage, makes more sense as the code
 # could still be changed often.
 
-from socbot.pluginbase import Base
+from socbot.pluginbase import Base, BadParams
 from socbot.usermanager import prefixes, BadEmail
 
 from twisted.words.protocols.irc import parseModes
@@ -145,12 +145,12 @@ class Plugin(Base):
 
         return string
 
-    def on_identify(self, bot, user, channel, message, inprivate):
+    def on_identify(self, bot, user, details):
         """IDENTIFY (<username>) <password> - Identify with the bot"""
-        parts =  message.split()
+        parts =  details["splitmsg"]
         command = parts.pop(0)
 
-        if not inprivate:
+        if not details["wasprivate"]:
             return "OOPS! Please privmsg me to identify!"
 
         if len(parts) == 2:
@@ -159,7 +159,7 @@ class Plugin(Base):
             usrname = user.nick
             pass_ = parts.pop(0)
         else:
-            return self.on_identify.__doc__
+            raise BadParams
 
         usr = bot.factory.users.logIn(user.nick, usrname, pass_)
 
@@ -168,23 +168,23 @@ class Plugin(Base):
         else:
             return "Authentication failed. (Usernames aren't case sensitive, passwords are!)"
 
-    def on_logout(self, bot, user, channel, message, inprivate):
+    def on_logout(self, bot, user, details):
         """LOGOUT - Log out from the bot."""
         usr = bot.factory.users[user.nick]
         usr.logOut()
 
         return "Goodbye!"
 
-    def on_register(self, bot, user, channel, message, inprivate):
+    def on_register(self, bot, user, details):
         """REGISTER <username> <password> <email> - Register to use the bot's functions"""
-        parts = message.split()
+        parts = details["splitmsg"]
         command = parts.pop(0)
 
-        if not inprivate:
+        if not details["wasprivate"]:
             return "OOPS! Please privmsg me to register!"
 
         if len(parts) != 3:
-            return self.on_register.__doc__
+            raise BadParams
 
         usrname = parts.pop(0)
         pass_ = parts.pop(0)
@@ -197,14 +197,15 @@ class Plugin(Base):
 
         return "Welcome to the club!"
 
-    def on_userinfo(self, bot, user, channel, message, inprivate):
+    def on_userinfo(self, bot, user, details):
         """USERINFO <nick> - Show info for a given user"""
-        parts = message.split()
+        parts = details["splitmsg"]
+        command = parts.pop(0)
 
-        if len(parts) != 2:
-            return self.on_userinfo.__doc__
+        if not parts:
+            raise BadParams
 
-        nick = parts[1].lower()
+        nick = parts.pop(0).lower()
 
         if nick:
             usr = bot.factory.users[nick]

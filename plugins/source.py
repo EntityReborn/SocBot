@@ -5,6 +5,6 @@ class Plugin(Base): # Must subclass Base
         # Call `on_source` when a user says "source" to me
         self.registerTrigger(self.on_source, "SOURCE")
 
-    def on_source(self, bot, user, channel, message, inprivate):
+    def on_source(self, bot, user, details):
         """SOURCE - say the bot's source URL"""
-        bot.msg(channel, bot.sourceURL)
+        return bot.sourceURL

@@ -1,3 +1,4 @@
 [general]
-name = Seen # human friendly name
-modulefile = seen.py # Actual module to import to load plugins
+name = Seen# human friendly name
+modulefile = seen.py# Actual module to import to load plugins
+enabled = True

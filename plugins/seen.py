@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime
 
-from socbot.pluginbase import Base
+from socbot.pluginbase import Base, BadParams
 
 class UserInfo(object):
     def __init__(self):
@@ -16,10 +16,25 @@ class UserInfo(object):
     def seen(self, channel):
         return self.channels[channel.lower()]
 
+    def seenLine(self, channel):
+        chan = self.channels[channel.lower()]
+        type = chan["type"].upper()
+        time = chan["timestamp"]
+        extra = chan["extra"]
+
+        if type == "NICK":
+            return "{0}: User changed nicks to {1}".format(time, extra)
+        elif type == "JOIN":
+            return "{0}: User joined {1}".format(time, channel)
+        elif type == "PRIVMSG":
+            return "{0}: User said: '{1}'".format(time, extra)
+        elif type == "RPL_NAMREPLY":
+            return "User was here when I joined"
+
 class Plugin(Base):
     def initialize(self, *args, **kwargs):
         self.registerTrigger(self.on_seen, "SEEN")
-        
+
         self.registerEvent(self._updateseen, "IRC_NICK", "IRC_PRIVMSG", "IRC_JOIN"
             "IRC_PART", "IRC_QUIT")
         self.registerEvent(self.on_namreply, "IRC_RPL_NAMREPLY")
@@ -42,24 +57,24 @@ class Plugin(Base):
         modechar = params[1]
         channel = params[2]
         rawusers = params[3].lower()
-        
+
         users = [nick.lstrip("~&@%+") for nick in rawusers.split()]
 
         for nick in users:
             user = self.userinfos[nick]
-            user.update(channel.lower(), command.upper(), "Present at my jointime")
+            user.update(channel.lower(), command.upper(), "Already here when I joined.")
 
     def _updateseen(self, bot, command, prefix, params):
         nick = prefix.split("!")[0].lower()
 
-        if command == "IRC_NICK":
+        if command == "NICK":
             newnick = params[0].lower()
 
             self.userinfos[newnick] = self.userinfos[nick]
             del self.userinfos[nick]
 
             return
-        
+
         if len(params) > 1:
             msg = params[1]
         else:
@@ -68,36 +83,34 @@ class Plugin(Base):
         user = self.userinfos[nick]
         user.update(params[0], command.upper(), msg)
 
-    def on_seen(self, bot, user, channel, message, inprivate):
+    def on_seen(self, bot, user, details):
         """SEEN <nick> [<channel>] - report on when <nick> was last seen in <channel>. <channel> defaults to the current channel"""
-        parts = message.lower().split()
+        parts = details["splitmsg"]
+        channel = details["channel"]
+        command = parts.pop(0)
 
-        if len(parts) >= 2:
-            nick = parts[1]
+        if parts:
+            nick = parts.pop(0).lower()
         else:
-            bot.msg(channel, self.on_seen.__doc__)
-            return
+            raise BadParams
 
-        if len(parts) >= 3:
-            chan = parts[2]
+        if parts:
+            chan = parts.pop(0).lower()
         else:
-            if inprivate:
-                bot.msg(channel, "You need to specify a channel")
-                return
+            if details["wasprivate"]:
+                return "You need to specify a channel!"
             else:
                 chan = channel.lower()
 
+        if parts:
+            raise BadParams
 
         if not chan in bot.channels:
-            bot.msg(channel, "I am not in {0}".format(chan))
-            return
+            return "I am not in {0}".format(chan)
 
         if not nick in self.userinfos:
-            bot.msg(channel, "I don't know anything about {0}".format(nick))
-            return
+            return "I don't know anything about {0}".format(nick)
 
         usr = self.userinfos[nick]
-        data = usr.seen(chan)
 
-        line = "Type: {0}, Data: {1}, Time: {2}".format(data["type"], data["extra"], str(data["timestamp"]))
-        bot.msg(channel, line)
+        return usr.seenLine(chan)

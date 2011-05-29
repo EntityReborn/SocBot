@@ -3,6 +3,7 @@ import re
 
 from twisted.words.protocols import irc
 from twisted.internet import protocol, reactor
+from socbot.pluginbase import InsuffPerms, BadParams
 
 from socbot.usermanager import UserManager
 
@@ -56,6 +57,9 @@ class Bot(irc.IRCClient):
 
         if self.factory.config["channels"]:
             for channel, chanconfig in self.factory.config["channels"].iteritems():
+                if not chanconfig["autojoin"]:
+                    continue
+
                 if chanconfig["password"]:
                     self.join(channel, chanconfig["password"])
                 else:
@@ -115,18 +119,41 @@ class Bot(irc.IRCClient):
             channel = user.split("!")[0]
 
         trigger = msg.split()[0].upper()
-        user = self.factory.users[nick]
+        usr = self.factory.users[nick]
         pm = self.factory.sstate["pluginmanager"]
+        details = {
+            "fullmsg": msg,
+            "splitmsg": msg.split(),
+            "channel": channel,
+            "wasprivate": wasprivate
+        }
 
         if trigger in pm.triggers:
             self.log.debug("trigger: {0}".format(trigger))
 
-            result = pm.triggerTrigger(trigger, self, user, channel, msg, wasprivate)
+            func = pm.triggerTrigger(trigger)
+
+            try:
+                result = func(self, usr, details)
+            except InsuffPerms, perm:
+                result = "You don't have the required permission: '{0}'".format(perm)
+            except BadParams:
+                result = func.__doc__
 
             if result:
+                if result == True:
+                    result = "Done."
+
                 self.msg(channel, result)
+
         else:
-            pm.triggerTrigger("TRIG_UNKNOWN", self, user, channel, msg, wasprivate)
+            func = pm.triggerTrigger("TRIG_UNKNOWN")
+
+            if func:
+                result = func(self, usr, details)
+
+                if result:
+                    self.msg(channel, result)
 
     def msg(self, target, message, length=irc.MAX_COMMAND_LENGTH):
         if not message or not target:
