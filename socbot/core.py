@@ -131,7 +131,7 @@ class Bot(irc.IRCClient):
         details = {
             "fullmsg": msg,
             "splitmsg": splitmsg,
-            "trigger": splitmsg.pop(0),
+            "trigger": splitmsg.pop(0).lower(),
             "channel": channel,
             "wasprivate": wasprivate
         }
