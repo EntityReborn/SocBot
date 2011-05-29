@@ -2,13 +2,11 @@ from socbot.pluginbase import Base, InsuffPerms, BadParams
 from socbot.config import PathDoesntExist
 
 class Plugin(Base):
-    def initialize(self, *args, **kwargs):
-        self.registerTrigger(self.on_config, "CONFIG")
-
+    @Base.trigger("CONFIG")
     def on_config(self, bot, user, details):
         """CONFIG PLUGIN|BASE <...>"""
         parts = details["splitmsg"]
-        command = parts.pop(0).lower()
+        command = details["trigger"]
 
         if not self.userHasPerm(user, command):
             raise InsuffPerms, "config."+command
@@ -22,6 +20,8 @@ class Plugin(Base):
             return self.on_plugconf(bot, user, details)
         elif type == "BASE":
             return self.on_baseconf(bot, user, details)
+        else:
+            raise BadParams
 
     def on_plugconf(self, bot, user, details):
         parts = details["splitmsg"]
@@ -37,6 +37,9 @@ class Plugin(Base):
         # CONFIG BASE general.commandchars set ^
         parts = details["splitmsg"]
         path = parts.pop(0).lower()
+
+        if not parts:
+            return self.on_baseconf.__doc__
 
         section = bot.factory.sstate["baseconfig"]
 

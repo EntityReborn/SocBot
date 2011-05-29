@@ -112,7 +112,7 @@ class PluginManager(object):
             return False
 
 
-    def triggerTrigger(self, trigger):
+    def getTrigger(self, trigger):
         log.debug("triggering '{0}'".format(trigger))
 
         trigs = self.triggers[trigger.upper()]
@@ -318,14 +318,15 @@ class PluginManager(object):
             klass = moduleinfo["env"]["Plugin"]
 
             name = moduleinfo["info"]["general"]["name"]
+            self.moduleinfo[name.upper()] = moduleinfo
 
             if moduleinfo["info"]["general"]["enabled"]:
-                moduleinfo["instance"] = klass(self, moduleinfo)
+                instance = moduleinfo["instance"] = klass(self, moduleinfo)
+                instance._initTrigs()
             else:
                 log.info("plugin {0} is disabled in it's config. Not instantiating it.".format(
                     name))
 
-            self.moduleinfo[name.upper()] = moduleinfo
         else:
             log.warning("Class 'Plugin' doesn't exist in module {0}, "
                 "or it doesn't subclass the defined "

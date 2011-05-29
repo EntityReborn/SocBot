@@ -87,6 +87,7 @@ class main(object):
                 f = BotFactory(name, config, self.sstate, self)
 
                 botService = internet.TCPClient(config["host"], config["port"], f)
+                log.info("Connecting to {0} ({1})".format(name, config["host"]))
                 botService.startService()
 
                 reactor.addSystemEventTrigger('before', 'shutdown',

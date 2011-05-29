@@ -33,12 +33,6 @@ class UserInfo(object):
 
 class Plugin(Base):
     def initialize(self, *args, **kwargs):
-        self.registerTrigger(self.on_seen, "SEEN")
-
-        self.registerEvent(self._updateseen, "IRC_NICK", "IRC_PRIVMSG", "IRC_JOIN"
-            "IRC_PART", "IRC_QUIT")
-        self.registerEvent(self.on_namreply, "IRC_RPL_NAMREPLY")
-
         self.userinfos = defaultdict(UserInfo)
 
     def enabled(self, *args, **kwargs):
@@ -52,6 +46,7 @@ class Plugin(Base):
                 for chan in bot.channels:
                     bot.sendLine('NAMES %s'%chan)
 
+    @Base.event("RPL_NAMREPLY")
     def on_namreply(self, bot, command, prefix, params):
         mynick = params[0]
         modechar = params[1]
@@ -64,6 +59,7 @@ class Plugin(Base):
             user = self.userinfos[nick]
             user.update(channel.lower(), command.upper(), "Already here when I joined.")
 
+    @Base.event("NICK", "PRIVMSG", "JOIN", "PART", "QUIT")
     def _updateseen(self, bot, command, prefix, params):
         nick = prefix.split("!")[0].lower()
 
@@ -83,11 +79,12 @@ class Plugin(Base):
         user = self.userinfos[nick]
         user.update(params[0], command.upper(), msg)
 
+    @Base.trigger("SEEN")
     def on_seen(self, bot, user, details):
         """SEEN <nick> [<channel>] - report on when <nick> was last seen in <channel>. <channel> defaults to the current channel"""
         parts = details["splitmsg"]
         channel = details["channel"]
-        command = parts.pop(0)
+        command = details["trigger"]
 
         if parts:
             nick = parts.pop(0).lower()

@@ -9,19 +9,6 @@ from twisted.words.protocols.irc import parseModes
 
 class Plugin(Base):
     def initialize(self, *args, **kwargs):
-        self.registerEvent(self.on_join, "IRC_JOIN")
-        self.registerEvent(self.on_part, "IRC_PART")
-        self.registerEvent(self.on_quit, "IRC_QUIT")
-        self.registerEvent(self.on_nick, "IRC_NICK")
-        self.registerEvent(self.on_mode, "IRC_MODE")
-        self.registerEvent(self.on_msg, "IRC_PRIVMSG")
-        self.registerEvent(self.on_who, "IRC_RPL_WHOREPLY")
-
-        self.registerTrigger(self.on_userinfo, "USERINFO")
-        self.registerTrigger(self.on_identify, "IDENTIFY")
-        self.registerTrigger(self.on_logout, "LOGOUT")
-        self.registerTrigger(self.on_register, "REGISTER")
-
         self.unknown_nicks = []
         self.looper = None
 
@@ -32,7 +19,7 @@ class Plugin(Base):
                 for chan in bot.channels:
                     bot.sendLine('WHO %s'%chan)
 
-
+    @Base.event("PRIVMSG")
     def on_msg(self, bot, command, prefix, params):
         nick, hostmask = prefix.split("!")
         user = bot.factory.users[nick]
@@ -40,6 +27,7 @@ class Plugin(Base):
         if user:
             user.hostmask = hostmask
 
+    @Base.event("MODE")
     def on_mode(self, bot, command, prefix, params):
         channel, modes, args = params[0], params[1], params[2:]
 
@@ -78,11 +66,13 @@ class Plugin(Base):
                     except KeyError:
                         pass
 
+    @Base.event("NICK")
     def on_nick(self, bot, command, prefix, params):
         newnick = params[0]
         oldnick = prefix.split("!")[0]
         bot.factory.users.nick(oldnick, newnick)
 
+    @Base.event("RPL_WHOREPLY")
     def on_who(self, bot, command, prefix, params):
         mynick = params[0]
         channel = params[1]
@@ -100,6 +90,7 @@ class Plugin(Base):
         usr.hostmask = "%s@%s" % (username, host)
         usr.channels[channel].modes = flags
 
+    @Base.event("JOIN")
     def on_join(self, bot, command, prefix, params):
         nick, host = prefix.split('!')
         channel = params[-1]
@@ -112,6 +103,7 @@ class Plugin(Base):
         else:
             bot.sendLine('WHO %s'%channel)
 
+    @Base.event("PART")
     def on_part(self, bot, command, prefix, params):
         parts = prefix.split('!')
         nick, host = parts[0], parts[1]
@@ -123,6 +115,7 @@ class Plugin(Base):
             if user:
                 user.hostmask = host
 
+    @Base.event("QUIT")
     def on_quit(self, bot, command, prefix, params):
         nick = prefix.split('!')[0]
         bot.factory.users.quit(nick)
@@ -145,10 +138,11 @@ class Plugin(Base):
 
         return string
 
+    @Base.trigger("IDENTIFY", "ID")
     def on_identify(self, bot, user, details):
         """IDENTIFY (<username>) <password> - Identify with the bot"""
         parts =  details["splitmsg"]
-        command = parts.pop(0)
+        command = details["trigger"]
 
         if not details["wasprivate"]:
             return "OOPS! Please privmsg me to identify!"
@@ -168,6 +162,7 @@ class Plugin(Base):
         else:
             return "Authentication failed. (Usernames aren't case sensitive, passwords are!)"
 
+    @Base.trigger("LOGOUT")
     def on_logout(self, bot, user, details):
         """LOGOUT - Log out from the bot."""
         usr = bot.factory.users[user.nick]
@@ -175,10 +170,11 @@ class Plugin(Base):
 
         return "Goodbye!"
 
+    @Base.trigger("REGISTER")
     def on_register(self, bot, user, details):
         """REGISTER <username> <password> <email> - Register to use the bot's functions"""
         parts = details["splitmsg"]
-        command = parts.pop(0)
+        command = details["trigger"]
 
         if not details["wasprivate"]:
             return "OOPS! Please privmsg me to register!"
@@ -197,10 +193,11 @@ class Plugin(Base):
 
         return "Welcome to the club!"
 
+    @Base.trigger("USERINFO")
     def on_userinfo(self, bot, user, details):
         """USERINFO <nick> - Show info for a given user"""
         parts = details["splitmsg"]
-        command = parts.pop(0)
+        command = details["trigger"]
 
         if not parts:
             raise BadParams

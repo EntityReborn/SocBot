@@ -3,13 +3,11 @@ import pywhois
 from socbot.pluginbase import Base, BadParams
 
 class Plugin(Base): # Must subclass Base
-    def initialize(self, *args, **kwargs):
-        self.registerTrigger(self.on_whois, "WHOIS")
-
+    @Base.trigger("WHOIS")
     def on_whois(self, bot, user, details):
         """WHOIS <domain> - Get info about a domain"""
         parts = details["splitmsg"]
-        command = parts.pop(0)
+        command = details["trigger"]
 
         if not parts:
             raise BadParams

@@ -2,15 +2,12 @@ from socbot.pluginbase import Base, InsuffPerms, BadParams
 from socbot.tools import isChannel
 
 class Plugin(Base):
-    def initialize(self, *args, **kwargs):
-        self.registerTrigger(self.on_ping, "PING")
-        self.registerTrigger(self.on_joinpart, "JOIN", "PART")
-        self.registerTrigger(self.on_help, "HELP", "COMMANDS")
-
+    @Base.trigger("PING")
     def on_ping(self, bot, user, details):
         """PING - Ask the bot to respond with 'Pong'"""
         return "Pong"
 
+    @Base.trigger("HELP", "COMMANDS")
     def on_help(self, bot, details):
         """{HELP, COMMANDS} -  Show commands known to the bot"""
         commands = ", ".join([x for x in self.manager.triggers.keys() if x != "TRIG_UNKNOWN"])
@@ -18,10 +15,11 @@ class Plugin(Base):
 
         return msg
 
+    @Base.trigger("JOIN", "PART", "LEAVE")
     def on_joinpart(self, bot, user, details):
         """{JOIN, PART} <channel> [<key or message>] - Join or leave a channel. """
         parts = details["splitmsg"]
-        command = parts.pop(0).lower()
+        command = details["trigger"]
 
         if not self.userHasPerm(user, command):
             raise InsuffPerms, "general."+command
@@ -41,7 +39,7 @@ class Plugin(Base):
 
             return True
 
-        elif command == "part":
+        elif command in ["part", "leave"]:
             if parts:
                 if isChannel(parts[0]):
                     chan = parts.pop(0)

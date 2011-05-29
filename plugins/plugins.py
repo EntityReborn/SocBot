@@ -2,14 +2,11 @@ from socbot.pluginbase import Base, InsuffPerms, BadParams
 from socbot.pluginmanager import NoSuchPlugin, PluginAlreadyEnabled, PluginAlreadyDisabled
 
 class Plugin(Base):
-    def initialize(self, *args, **kwargs):
-        self.registerTrigger(self.on_reload, "RELOAD")
-        self.registerTrigger(self.on_enabledisable, "DISABLE", "ENABLE")
-
+    @Base.trigger("RELOAD")
     def on_reload(self, bot, user, details):
-        """RELOAD [<pluginname>] - Reload plugins"""
+        """RELOAD [<name>] - Reload plugins. If name is not specified, all plugins are reloaded"""
         parts = details["splitmsg"]
-        command = parts.pop(0).lower()
+        command = details["trigger"]
 
         if not self.userHasPerm(user, command):
             raise InsuffPerms, "plugins."+command
@@ -28,10 +25,11 @@ class Plugin(Base):
 
         return True
 
+    @Base.trigger("ENABLE", "DISABLE")
     def on_enabledisable(self, bot, user, details):
-        """{DIS,EN}ABLE <pluginname> - Enable or disable a plugin by name. The plugin is completely unloaded when disabled."""
+        """{DISABLE, ENABLE} <pluginname> - Enable or disable a plugin by name. The plugin is completely unloaded when disabled."""
         parts = details["splitmsg"]
-        command = parts.pop(0).lower()
+        command = details["trigger"]
 
         if not self.userHasPerm(user, command):
             raise InsuffPerms, "plugins."+command

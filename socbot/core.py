@@ -52,9 +52,7 @@ class Bot(irc.IRCClient):
             self._ping_deferred = reactor.callLater(
                 self.factory.ping_interval, self._idle_ping)
 
-    def receivedMOTD(self, motd):
-        self.log.info("received MOTD")
-
+    def doJoins(self):
         if self.factory.config["channels"]:
             for channel, chanconfig in self.factory.config["channels"].iteritems():
                 if not chanconfig["autojoin"]:
@@ -64,6 +62,14 @@ class Bot(irc.IRCClient):
                     self.join(channel, chanconfig["password"])
                 else:
                     self.join(channel)
+
+    def irc_ERR_NOMOTD(self, prefix, params):
+        self.log.info("no MOTD")
+        self.doJoins()
+
+    def receivedMOTD(self, motd):
+        self.log.info("received MOTD")
+        self.doJoins()
 
     def sendLine(self, line):
         self.log.debug("sending line `{0}`".format(line))
@@ -94,7 +100,7 @@ class Bot(irc.IRCClient):
         self.log.debug("command `{0}`, from prefix `{1}`".format(
             command, prefix))
 
-        self.factory.sstate["pluginmanager"].triggerEvent("IRC_%s"%command,
+        self.factory.sstate["pluginmanager"].triggerEvent(command,
             self, command, prefix, params)
 
         irc.IRCClient.handleCommand(self, command, prefix, params)
@@ -121,9 +127,11 @@ class Bot(irc.IRCClient):
         trigger = msg.split()[0].upper()
         usr = self.factory.users[nick]
         pm = self.factory.sstate["pluginmanager"]
+        splitmsg = msg.split()
         details = {
             "fullmsg": msg,
-            "splitmsg": msg.split(),
+            "splitmsg": splitmsg,
+            "trigger": splitmsg.pop(0),
             "channel": channel,
             "wasprivate": wasprivate
         }
@@ -131,7 +139,7 @@ class Bot(irc.IRCClient):
         if trigger in pm.triggers:
             self.log.debug("trigger: {0}".format(trigger))
 
-            func = pm.triggerTrigger(trigger)
+            func = pm.getTrigger(trigger)
 
             try:
                 result = func(self, usr, details)
@@ -139,6 +147,9 @@ class Bot(irc.IRCClient):
                 result = "You don't have the required permission: '{0}'".format(perm)
             except BadParams:
                 result = func.__doc__
+            except Exception, msg:
+                result = "Exception in plugin function {0} ({1}). " + \
+                    "Please check the logs.".format(func.__name__, msg)
 
             if result:
                 if result == True:
@@ -147,7 +158,7 @@ class Bot(irc.IRCClient):
                 self.msg(channel, result)
 
         else:
-            func = pm.triggerTrigger("TRIG_UNKNOWN")
+            func = pm.getTrigger("TRIG_UNKNOWN")
 
             if func:
                 result = func(self, usr, details)

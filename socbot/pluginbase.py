@@ -1,3 +1,5 @@
+from inspect import getmembers, ismethod
+
 class InsuffPerms(Exception):
     """The user does not have the required permissions."""
 
@@ -13,13 +15,33 @@ class Base(object):
         """Initialize the plugin"""
         pass
 
-    def registerTrigger(self, func, *trigs):
-        """Register a trigger-word based event"""
-        self.manager.registerTrigger(self.info["info"]["general"]["name"], func, *trigs)
+    @classmethod
+    def trigger(cls, *triggers):
+        def call(func):
+            func.triggers = triggers
+            func.type = "trigger"
+            return func
+        return call
 
-    def registerEvent(self, func, *events):
-        """Register an IRC-based event"""
-        self.manager.registerEvent(self.info["info"]["general"]["name"], func, *events)
+    @classmethod
+    def event(cls, *triggers):
+        def call(func):
+            func.triggers = triggers
+            func.type = "event"
+            return func
+        return call
+
+    def _initTrigs(self):
+        name = self.info["info"]["general"]["name"]
+        members = getmembers(self)
+
+        for funcdata in members:
+            func = funcdata[1]
+            if ismethod(func) and hasattr(func, "triggers"):
+                if func.type == "event":
+                    self.manager.registerEvent(name, func, *func.triggers)
+                else:
+                    self.manager.registerTrigger(name, func, *func.triggers)
 
     def beforeReload(self, *args, **kwargs):
         pass
