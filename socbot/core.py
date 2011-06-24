@@ -100,6 +100,10 @@ class Bot(irc.IRCClient):
         self.log.debug("command `{0}`, from prefix `{1}`".format(
             command, prefix))
 
+        if command == "ERROR":
+            self.log.debug("command `{0}`, from prefix `{1}`, with params `{2}`".format(
+                command, prefix, params))
+
         self.factory.sstate["pluginmanager"].triggerEvent(command,
             self, command, prefix, params)
 

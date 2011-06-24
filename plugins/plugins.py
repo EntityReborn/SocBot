@@ -51,7 +51,7 @@ class Plugin(Base):
                 self.manager.disablePlug(plugname)
             except NoSuchPlugin:
                 return "No such plugin, '{0}'.".format(plugname)
-            except PluginAlreadyEnabled:
+            except PluginAlreadyDisabled:
                 return "'{0}' already disabled.".format(plugname)
 
         return True

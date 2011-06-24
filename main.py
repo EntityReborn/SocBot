@@ -10,6 +10,7 @@ from socbot.config import ConfigObj
 from socbot.core import BotFactory
 from socbot.pluginmanager import PluginManager
 from socbot.tools import validateConfig
+from socbot.log import addLogger
 from socbot import process
 
 log = logging.getLogger("main")
@@ -18,7 +19,7 @@ class main(object):
     def __init__(self, curdir, sstate=None):
         self.sstate = sstate
 
-        if not sstate:
+        if sstate == None:
             self.sstate = {}
 
         self.sstate["exitcode"] = 0
@@ -106,7 +107,7 @@ class main(object):
                 inst.quit(msg)
 
 if __name__ == "__main__":
-    import argparse
+    import argparse, signal
 
     parser = argparse.ArgumentParser(description='Run a socbot.')
     parser.add_argument('--daemon', action='store_true',
@@ -121,6 +122,7 @@ if __name__ == "__main__":
         process.daemonize()
 
     dir = os.path.abspath(os.path.dirname(__file__))
+    
     if not args.multi:
         alone = process.setupsingleinstance(dir+"/conf/socbot.pid")
 
@@ -130,23 +132,21 @@ if __name__ == "__main__":
 
     lvl = logging.DEBUG
 
-    hdlr = logging.StreamHandler()
-    formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-    hdlr.setFormatter(formatter)
+    botlog = addLogger("socbot", lvl)
+    pmlog = addLogger("pluginmanager", lvl)
+    mlog = addLogger("main", lvl)
 
-    botlog = logging.getLogger("socbot")
-    botlog.addHandler(hdlr)
-    botlog.setLevel(lvl)
+    sstate = {}
 
-    pmlog = logging.getLogger("pluginmanager")
-    pmlog.addHandler(hdlr)
-    pmlog.setLevel(lvl)
+    def handle_signal(signum, stackframe):
+        if signum == signal.SIGINT:
+            for name, bots in sstate["bots"].iteritems():
+                for bot in bots:
+                    bot.quit("CTRL-C")
 
-    mlog = logging.getLogger("main")
-    mlog.addHandler(hdlr)
-    mlog.setLevel(lvl)
+    signal.signal(signal.SIGINT, handle_signal)
 
-    m = main(dir)
+    m = main(dir, sstate)
 
     if m.load():
         m.run()
