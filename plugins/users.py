@@ -140,7 +140,7 @@ class Plugin(Base):
 
     @Base.trigger("IDENTIFY", "ID")
     def on_identify(self, bot, user, details):
-        """IDENTIFY (<username>) <password> - Identify with the bot"""
+        """IDENTIFY [username] <password> - Identify with the bot"""
         parts =  details["splitmsg"]
         command = details["trigger"]
 

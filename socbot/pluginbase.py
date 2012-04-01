@@ -21,6 +21,7 @@ class Base(object):
             func.triggers = triggers
             func.type = "trigger"
             return func
+        
         return call
 
     @classmethod
@@ -29,6 +30,7 @@ class Base(object):
             func.triggers = triggers
             func.type = "event"
             return func
+        
         return call
 
     def _initTrigs(self):

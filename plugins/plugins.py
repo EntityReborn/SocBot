@@ -4,7 +4,7 @@ from socbot.pluginmanager import NoSuchPlugin, PluginAlreadyEnabled, PluginAlrea
 class Plugin(Base):
     @Base.trigger("RELOAD")
     def on_reload(self, bot, user, details):
-        """RELOAD [<name>] - Reload plugins. If name is not specified, all plugins are reloaded"""
+        """RELOAD [name] - Reload plugins. If name is not specified, all plugins are reloaded"""
         parts = details["splitmsg"]
         command = details["trigger"]
 

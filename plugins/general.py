@@ -17,7 +17,7 @@ class Plugin(Base):
 
     @Base.trigger("JOIN", "PART", "LEAVE")
     def on_joinpart(self, bot, user, details):
-        """{JOIN, PART} <channel> [<key or message>] - Join or leave a channel. """
+        """{JOIN, PART} <channel> [key or message] - Join or leave a channel. """
         parts = details["splitmsg"]
         command = details["trigger"]
 

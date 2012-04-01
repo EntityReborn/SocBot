@@ -81,7 +81,7 @@ class Plugin(Base):
 
     @Base.trigger("SEEN")
     def on_seen(self, bot, user, details):
-        """SEEN <nick> [<channel>] - report on when <nick> was last seen in <channel>. <channel> defaults to the current channel"""
+        """SEEN <nick> [channel] - report on when <nick> was last seen in <channel>. <channel> defaults to the current channel"""
         parts = details["splitmsg"]
         channel = details["channel"]
         command = details["trigger"]

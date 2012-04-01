@@ -152,8 +152,8 @@ class Bot(irc.IRCClient):
             except BadParams:
                 result = func.__doc__
             except Exception, msg:
-                result = "Exception in plugin function {0} ({1}). " + \
-                    "Please check the logs.".format(func.__name__, msg)
+                result = "Exception in plugin function {0} ({1}). ".format(func.__name__, msg) + \
+                    "Please check the logs."
 
             if result:
                 if result == True:

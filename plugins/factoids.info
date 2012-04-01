@@ -1,0 +1,7 @@
+[general]
+name = Factoids# human friendly name
+modulefile = factoids.py# Actual module to import to load plugins
+enabled = True
+
+[permissions]
+whatis = normal
