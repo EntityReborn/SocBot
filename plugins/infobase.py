@@ -57,8 +57,18 @@ class FactoidManager(object):
 
         if not exists.count():
             raise NoSuchFactoid, key
-
-        return exists.first().response
+        
+        response = exists.first().response
+        
+        alias = False
+        if response.startswith('@'):
+            alias = response[1::]
+            response = self.getFact(alias)
+            
+        if alias:
+            return "%s (alias of %s)" % (response, alias) 
+        
+        return response
 
     def remFact(self, key):
         exists = self.session.query(Factoid).filter_by(keyword=key)
