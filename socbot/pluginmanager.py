@@ -21,6 +21,7 @@ class PluginManager(object):
         self.sstate = sstate
         self.moduledir = os.path.abspath(moduledir)
         self.moduleinfo = {}
+        self._event_blocked = False
 
         log.debug("PluginManager instantiated with '{0}' for "
             "moduledir.".format(self.moduledir))
@@ -127,12 +128,16 @@ class PluginManager(object):
 
     def triggerEvent(self, event, *args, **kwargs):
         log.debug("triggering '{0}'".format(event))
+        self._event_blocked = False
 
         for func in self.events[event.upper()]:
             try:
                 func(*args, **kwargs)
             except Exception:
                 traceback.print_exc(5)
+                
+            if self._event_blocked:
+                break
 
     def reloadPlugin(self, name):
         name = name.upper()

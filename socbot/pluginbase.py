@@ -30,6 +30,7 @@ class Base(object):
         def call(func):
             func.triggers = triggers
             func.type = "event"
+            
             return func
         
         return call
@@ -40,11 +41,15 @@ class Base(object):
 
         for funcdata in members:
             func = funcdata[1]
+            
             if ismethod(func) and hasattr(func, "triggers"):
                 if func.type == "event":
                     self.manager.registerEvent(name, func, *func.triggers)
                 else:
                     self.manager.registerTrigger(name, func, *func.triggers)
+    
+    def blockEvent(self):
+        self.manager._event_blocked = True
 
     def beforeReload(self, *args, **kwargs):
         pass

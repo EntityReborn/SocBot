@@ -74,7 +74,7 @@ class Bot(irc.IRCClient):
     def sendLine(self, line):
         self.log.debug("sending line `{0}`".format(line))
 
-        irc.IRCClient.sendLine(self, line)
+        irc.IRCClient.sendLine(self, str(line))
 
         if self._ping_deferred is not None:
             self._ping_deferred.reset(self.factory.ping_interval)
@@ -139,6 +139,8 @@ class Bot(irc.IRCClient):
             "channel": channel,
             "wasprivate": wasprivate
         }
+        
+        result = None
 
         if trigger in pm.triggers:
             self.log.debug("trigger: {0}".format(trigger))
@@ -155,21 +157,14 @@ class Bot(irc.IRCClient):
                 self.log.exception(e)
                 result = "Exception in plugin function {0} ({1}). ".format(func.__name__, msg) + \
                     "Please check the logs."
-
-            if result:
-                if result == True:
-                    result = "Done."
-
-                self.msg(channel, result)
-
         else:
-            func = pm.getTrigger("TRIG_UNKNOWN")
-
-            if func:
-                result = func(self, usr, details)
-
-                if result:
-                    self.msg(channel, result)
+            pm.triggerEvent("TRIG_UNKNOWN", self, usr, details)
+                
+        if result:
+            if result == True:
+                result = "Done."
+        
+            self.msg(channel, str(result))
 
     def msg(self, target, message, length=irc.MAX_COMMAND_LENGTH):
         if not message or not target:
@@ -211,10 +206,14 @@ class Bot(irc.IRCClient):
         irc.IRCClient.leave(self, channel, msg)
 
     def joined(self, channel):
+        self.log.info("joined " + channel)
+        
         if not channel.lower() in self.channels:
             self.channels.append(channel.lower())
 
     def left(self, channel):
+        self.log.info("left " + channel)
+        
         if channel.lower() in self.channels:
             self.channels.remove(channel.lower())
 

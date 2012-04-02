@@ -13,8 +13,6 @@ from socbot.tools import validateConfig
 from socbot.log import addLogger
 from socbot import process
 
-log = logging.getLogger("main")
-
 class main(object):
     def __init__(self, curdir, sstate=None):
         self.sstate = sstate
@@ -108,6 +106,13 @@ class main(object):
 
 if __name__ == "__main__":
     import argparse, signal
+    
+    lvl = logging.DEBUG
+    log = logging.getLogger("main")
+    
+    botlog = addLogger("socbot", lvl)
+    pmlog = addLogger("pluginmanager", lvl)
+    mlog = addLogger("main", lvl)
 
     parser = argparse.ArgumentParser(description='Run a socbot.')
     parser.add_argument('--daemon', action='store_true',
@@ -129,12 +134,6 @@ if __name__ == "__main__":
         if not alone:
             log.error("A SocBot is already running! Use --multi to run several instances.")
             sys.exit(-1)
-
-    lvl = logging.DEBUG
-
-    botlog = addLogger("socbot", lvl)
-    pmlog = addLogger("pluginmanager", lvl)
-    mlog = addLogger("main", lvl)
 
     sstate = {}
 

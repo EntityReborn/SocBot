@@ -89,6 +89,12 @@ class UserManager(object):
         if not nick in self.users:
             user = User(nick, hostmask)
             self.users[nick] = user
+            
+            users = self.sharedstate["users"]["users"]
+
+            if nick in users:
+                config = users[nick]
+                self.users[nick].userinfo = [ nick, config ]
 
             return user
         else:

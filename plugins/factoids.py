@@ -1,15 +1,23 @@
-from socbot.pluginbase import Base, BadParams # Required
+from socbot.pluginbase import Base, BadParams, InsuffPerms # Required
 from infobase import FactoidManager, NoSuchFactoid, FactoidAlreadyExists
 
 class Plugin(Base): # Must subclass Base
     def initialize(self, *args, **kwargs):
         self.manager = FactoidManager('factoids.sqlite')
-        
-    @Base.trigger("WHATIS", "?")
+    
+    @Base.event("TRIG_UNKNOWN")
+    def on_unknown(self, bot, user, details):
+        try:
+            response = self.manager.getFact(details['trigger'])
+            bot.msg(details['channel'], response)
+        except NoSuchFactoid, e:
+            pass
+    
+    @Base.trigger("?")
     def on_whatis(self, bot, user, details):
-        """WHATIS <id> - say a factoid"""
+        """? <id> - say a factoid"""
         if len(details['splitmsg']) < 1:
-            return BadParams
+            raise BadParams
         
         try:
             response = self.manager.getFact(details['splitmsg'][0])
@@ -18,11 +26,11 @@ class Plugin(Base): # Must subclass Base
             
         return str(response)
     
-    @Base.trigger("TELL", "?>")
+    @Base.trigger("?>")
     def on_tell(self, bot, user, details):
-        """TELL <nick> <id> - tell a user about a factoid"""
+        """?> <nick> <id> - tell a user about a factoid"""
         if len(details['splitmsg']) < 2:
-            return BadParams
+            raise BadParams
         
         try:
             response = self.manager.getFact(details['splitmsg'][1])
@@ -31,15 +39,15 @@ class Plugin(Base): # Must subclass Base
             
         return '%s: %s' % (details['splitmsg'][0], str(response))
     
-    @Base.trigger("DEFFACT", "+F")
+    @Base.trigger("ADDFACT", "+F")
     def on_define(self, bot, user, details):
-        """DEFFACT <id> <message> - define a factoid"""
+        """ADDFACT <id> <message> - define a factoid"""
         
         if not self.userHasPerm(user, 'factoids.define'):
             raise InsuffPerms, "factoids.define"
         
         if len(details['splitmsg']) < 2:
-            return BadParams
+            raise BadParams
         
         self.manager.addFact(details['splitmsg'][0], ' '.join(details['splitmsg'][1::]), True)
             
@@ -53,7 +61,7 @@ class Plugin(Base): # Must subclass Base
             raise InsuffPerms, "factoids.remove"
         
         if len(details['splitmsg']) < 1:
-            return BadParams
+            raise BadParams
         
         self.manager.remFact(details['splitmsg'][0])
             
