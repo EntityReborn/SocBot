@@ -138,6 +138,26 @@ class Plugin(Base):
 
         return string
 
+    @Base.trigger('ISOP')
+    def on_isop(self, bot, user, details):
+        """ISOP <user> [channel] - Check if a user is an op for a given channel"""
+        if len(details['splitmsg']) > 0:
+            user = details['splitmsg'][0]
+            
+            if len(details['splitmsg']) > 1:
+                channel = details['splitmsg'][1]
+            else:
+                channel = details['channel']
+        else:
+            return BadParams
+        
+        userdata = bot.factory.users[user]
+        
+        if "@" in userdata.channels[channel].modes:
+            return "This user is an op!"
+        else:
+            return "This user is not an op!"
+        
     @Base.trigger("IDENTIFY", "ID")
     def on_identify(self, bot, user, details):
         """IDENTIFY [username] <password> - Identify with the bot"""

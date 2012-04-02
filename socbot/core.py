@@ -151,7 +151,8 @@ class Bot(irc.IRCClient):
                 result = "You don't have the required permission: '{0}'".format(perm)
             except BadParams:
                 result = func.__doc__
-            except Exception, msg:
+            except Exception as e:
+                self.log.exception(e)
                 result = "Exception in plugin function {0} ({1}). ".format(func.__name__, msg) + \
                     "Please check the logs."
 

@@ -4,7 +4,7 @@ from socbot.config import PathDoesntExist
 class Plugin(Base):
     @Base.trigger("CONFIG")
     def on_config(self, bot, user, details):
-        """CONFIG PLUGIN|BASE <...>"""
+        """CONFIG PLUGIN|BASE|RELOAD <...>"""
         parts = details["splitmsg"]
         command = details["trigger"]
 
@@ -18,6 +18,9 @@ class Plugin(Base):
 
         if type == "PLUGIN":
             return self.on_plugconf(bot, user, details)
+        if type == "RELOAD":
+            bot.factory.sstate["baseconfig"].reload()
+            return True
         elif type == "BASE":
             return self.on_baseconf(bot, user, details)
         else:
@@ -36,10 +39,11 @@ class Plugin(Base):
         """CONFIG BASE <some.path> [SET <data>] - Reply with base config data, or set data if SET is used."""
         # CONFIG BASE general.commandchars set ^
         parts = details["splitmsg"]
-        path = parts.pop(0).lower()
-
+        
         if not parts:
             return self.on_baseconf.__doc__
+        
+        path = parts[0].lower()
 
         section = bot.factory.sstate["baseconfig"]
 
@@ -61,15 +65,21 @@ class Plugin(Base):
 
         elif len(parts) == 1:
             return self._respond(path, section)
+        
         else:
             raise BadParams
 
     def _respond(self, path, section):
         config = section.getByPath(path.split("."))
 
-        if isinstance(config, (dict, tuple)):
-            line = ", ".join(config.keys())
-        else:
+        if isinstance(config, (list, tuple)):
             line = ", ".join(config)
+        if isinstance(config, dict):
+            line = ", ".join([
+                "%s: %s" % (key,value if not isinstance(value, (list, dict, tuple)) else "(...)") 
+                for key, value in config.iteritems()
+            ])
+        else:
+            line = config
 
         return "'{0}': {1}".format(path, line)

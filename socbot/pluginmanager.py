@@ -321,7 +321,7 @@ class PluginManager(object):
             self.moduleinfo[name.upper()] = moduleinfo
 
             if moduleinfo["info"]["general"]["enabled"]:
-                instance = moduleinfo["instance"] = klass(self, moduleinfo)
+                instance = moduleinfo["instance"] = klass(self, moduleinfo, self.sstate['users'])
                 instance._initTrigs()
             else:
                 log.info("plugin {0} is disabled in it's config. Not instantiating it.".format(

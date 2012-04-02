@@ -7,7 +7,8 @@ class BadParams(Exception):
     """The supplied parameters are not correct"""
 
 class Base(object):
-    def __init__(self, manager, info):
+    def __init__(self, manager, info, users):
+        self.users = users
         self.manager = manager
         self.info = info
 
