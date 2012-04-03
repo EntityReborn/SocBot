@@ -26,6 +26,8 @@ class UserManager(object):
 
     def register(self, nick, username, pass_, email):
         username = username.lower()
+        self.sharedstate["users"].reload()
+
         users = self.sharedstate["users"]["users"]
 
         if username in users:
@@ -92,9 +94,9 @@ class UserManager(object):
             
             users = self.sharedstate["users"]["users"]
 
-            if nick in users:
-                config = users[nick]
-                self.users[nick].userinfo = [ nick, config ]
+            if nick.lower() in users:
+                config = users[nick.lower()]
+                self.users[nick.lower()].userinfo = [ nick, config ]
 
             return user
         else:

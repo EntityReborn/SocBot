@@ -212,6 +212,39 @@ class Plugin(Base):
             return "Erroneous email provided: {0}".format(email)
 
         return "Welcome to the club!"
+    
+    @Base.trigger("ADDMASK")
+    def in_addmask(self, bot, user, details):
+        nick, hostmask = details['fulluser'].split("!")
+        
+        bot.factory.sstate['users'].reload()
+        c = bot.factory.sstate['users']['users'][nick]
+        hostmask = hostmask.split('@')[1]
+        
+        if not hostmask in c['hostmasks']:    
+            c['hostmasks'].append(hostmask)
+            bot.factory.sstate['users'].write()
+            
+            return "Mask added."
+        
+        return "This mask is already added."
+    
+    @Base.trigger("REMMASK")
+    def in_remmask(self, bot, user, details):
+        nick, hostmask = details['fulluser'].split("!")
+        
+        bot.factory.sstate['users'].reload()
+        c = bot.factory.sstate['users']['users'][nick]
+        hostmask = hostmask.split('@')[1]
+        
+        
+        if hostmask in c['hostmasks']:    
+            c['hostmasks'].remove(hostmask)
+            bot.factory.sstate['users'].write()
+            
+            return "Mask removed."
+        
+        return "This mask is not registered."
 
     @Base.trigger("USERINFO")
     def on_userinfo(self, bot, user, details):
@@ -220,9 +253,9 @@ class Plugin(Base):
         command = details["trigger"]
 
         if not parts:
-            raise BadParams
-
-        nick = parts.pop(0).lower()
+            nick = user.nick
+        else:
+            nick = parts.pop(0).lower()
 
         if nick:
             usr = bot.factory.users[nick]

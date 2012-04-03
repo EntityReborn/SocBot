@@ -63,6 +63,6 @@ class Plugin(Base):
         
         if chan.lower() != bot.nickname.lower():
             bot.leave(chan, message)
-            return False
+            return True
         
         return "Can't leave a PM!"

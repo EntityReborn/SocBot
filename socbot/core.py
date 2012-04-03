@@ -136,6 +136,8 @@ class Bot(irc.IRCClient):
         splitmsg = msg.split()
         details = {
             "fullmsg": msg,
+            "fulluser": user,
+            "userobj": usr,
             "splitmsg": splitmsg,
             "trigger": splitmsg.pop(0).lower(),
             "channel": channel,
@@ -182,16 +184,20 @@ class Bot(irc.IRCClient):
 
     def join(self, channel, key=None):
         channel = channel.lower()
-
+        
         if not channel in self.factory.config["channels"]:
+            self.factory.config.root().reload()
+            
             self.factory.config["channels"][channel] = {
                 "autojoin": True
             }
+        else:
+            self.factory.config["channels"][channel]["autojoin"] = True
+        
+        if key:
+            self.factory.config["channels"][channel]["password"] = key
 
-            if key:
-                self.factory.config["channels"][channel]["password"] = key
-
-            self.factory.config.root().write()
+        self.factory.config.root().write()
 
         irc.IRCClient.join(self, channel, key)
 
@@ -199,9 +205,9 @@ class Bot(irc.IRCClient):
         channel = channel.lower()
 
         if channel in self.factory.config["channels"]:
-            self.factory.config["channels"][channel] = {
-                "autojoin": False
-            }
+            self.factory.config.root().reload()
+            
+            self.factory.config["channels"][channel]['autojoin'] = False
 
             self.factory.config.root().write()
 

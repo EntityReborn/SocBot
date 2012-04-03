@@ -46,7 +46,7 @@ class Plugin(Base):
         path = parts[0].lower()
 
         section = bot.factory.sstate["baseconfig"]
-
+        section.reload()
         try:
             config = section.getByPath(path.split("."))
         except PathDoesntExist:
