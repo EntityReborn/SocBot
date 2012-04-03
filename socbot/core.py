@@ -124,6 +124,8 @@ class Bot(irc.IRCClient):
                 msg = match.group(1)
             elif msg[0] in self.factory.sstate['baseconfig']['general']['commandchars']:
                 msg = msg[1:]
+            else:
+                return
         else:
             wasprivate = True
             channel = user.split("!")[0]
