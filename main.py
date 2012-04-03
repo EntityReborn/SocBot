@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys, os
 from collections import defaultdict
 import logging
