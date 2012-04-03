@@ -1,5 +1,6 @@
 [general]
 	commandchars = string(default="!")
+	nicktrigger = string(default="true")
 
 [servers]
     [[__many__]]

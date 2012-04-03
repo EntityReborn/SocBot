@@ -120,7 +120,7 @@ class Bot(irc.IRCClient):
         match = re.search('^[ ]*{0}[:,][ ]*(.*)$'.format(self.nickname), msg)
 
         if channel.lower() != self.nickname.lower():
-            if match:
+            if match and self.factory.sstate['baseconfig']['general']['nicktrigger'].lower() == 'true':
                 msg = match.group(1)
             elif msg[0] in self.factory.sstate['baseconfig']['general']['commandchars']:
                 msg = msg[1:]

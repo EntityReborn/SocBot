@@ -18,7 +18,7 @@ class Plugin(Base):
 
         if type == "PLUGIN":
             return self.on_plugconf(bot, user, details)
-        if type == "RELOAD":
+        elif type == "RELOAD":
             bot.factory.sstate["baseconfig"].reload()
             return True
         elif type == "BASE":
@@ -43,10 +43,11 @@ class Plugin(Base):
         if not parts:
             return self.on_baseconf.__doc__
         
-        path = parts[0].lower()
+        path = parts.pop(0).lower()
 
         section = bot.factory.sstate["baseconfig"]
         section.reload()
+        
         try:
             config = section.getByPath(path.split("."))
         except PathDoesntExist:
@@ -58,6 +59,8 @@ class Plugin(Base):
             if command == "SET":
                 data = " ".join(parts)
                 section.setByPath(path.split("."), data)
+                
+                section.write()
 
                 return self._respond(path, section)
             else:
