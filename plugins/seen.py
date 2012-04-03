@@ -6,12 +6,23 @@ from socbot.pluginbase import Base, BadParams
 class UserInfo(object):
     def __init__(self):
         self.channels = defaultdict(dict)
+        self.bot = None
+        self.nick = ""
+        self.tellmsgs = list()
 
     def update(self, channel, type, extra):
         channel = channel.lower()
         self.channels[channel]["type"] = type
         self.channels[channel]["extra"] = extra
         self.channels[channel]["timestamp"] = datetime.now()
+        
+        if type != "QUIT":
+            for msgdata in self.tellmsgs:
+                time = datetime.strftime(msgdata['date'], '%c')
+                self.bot.msg(self.nick, "{0} in {1} asked to tell you the following: {2} ({3})".format(
+                    msgdata['from'].nick, msgdata['channel'], msgdata['text'], time))
+                
+            self.tellmsgs = list()
 
     def seen(self, channel):
         return self.channels[channel.lower()]
@@ -22,14 +33,24 @@ class UserInfo(object):
         time = chan["timestamp"]
         extra = chan["extra"]
 
+        time = datetime.strftime(time, '%c')
         if type == "NICK":
             return "{0}: User changed nicks to {1}".format(time, extra)
         elif type == "JOIN":
             return "{0}: User joined {1}".format(time, channel)
         elif type == "PRIVMSG":
+            
+            if extra.startswith('\x01'):
+                return "{0}: User did an action: '{1}'".format(time, extra[8:-1])
             return "{0}: User said: '{1}'".format(time, extra)
         elif type == "RPL_NAMREPLY":
-            return "User was here when I joined"
+            return "User was here when I joined."
+        elif type == "QUIT":
+            return "User quit."
+        elif type == "PART":
+            return "User left the channel."
+        
+        return "I don't know what this user did last!"
 
 class Plugin(Base):
     def initialize(self, *args, **kwargs):
@@ -57,6 +78,8 @@ class Plugin(Base):
 
         for nick in users:
             user = self.userinfos[nick]
+            user.bot = bot
+            user.nick = nick
             user.update(channel.lower(), command.upper(), "Already here when I joined.")
 
     @Base.event("NICK", "PRIVMSG", "JOIN", "PART", "QUIT")
@@ -67,9 +90,9 @@ class Plugin(Base):
             newnick = params[0].lower()
 
             self.userinfos[newnick] = self.userinfos[nick]
+            self.userinfos[newnick].nick = newnick
             del self.userinfos[nick]
-
-            return
+            nick = newnick
 
         if len(params) > 1:
             msg = params[1]
@@ -77,7 +100,28 @@ class Plugin(Base):
             msg = ""
 
         user = self.userinfos[nick]
+        user.bot = bot
         user.update(params[0], command.upper(), msg)
+
+    @Base.trigger("TELL")
+    def on_tell(self, bot, user, details):
+        """TELL <nick> <text> - tell a user something when they are next seen"""
+        parts = details["splitmsg"]
+        channel = details["channel"]
+        
+        if len(parts) >= 2:
+            data = {
+                'channel': details['channel'], 
+                'text': " ".join(parts[1::]),
+                'from': user,
+                'date': datetime.now()
+            }
+            
+            self.userinfos[parts[0].lower()].tellmsgs.append(data)
+            
+            return "I'll let them know!"
+        
+        raise BadParams
 
     @Base.trigger("SEEN")
     def on_seen(self, bot, user, details):

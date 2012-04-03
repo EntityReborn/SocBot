@@ -1,11 +1,18 @@
 from socbot.pluginbase import Base, InsuffPerms, BadParams
 from socbot.tools import isChannel
 
+import datetime
+
 class Plugin(Base):
     @Base.trigger("PING")
     def on_ping(self, bot, user, details):
         """PING - Ask the bot to respond with 'Pong'"""
         return "Pong!"
+    
+    @Base.trigger("BOTTIME")
+    def on_bottime(self, bot, user, details):
+        """BOTTIME - Ask the bot to respond with the time of it's computer"""
+        return "The date and time is %s" % datetime.datetime.strftime(datetime.datetime.now(), '%c')
 
     @Base.trigger("HELP", "COMMANDS")
     def on_help(self, bot, user, details):
