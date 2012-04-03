@@ -181,6 +181,10 @@ class Bot(irc.IRCClient):
 
         irc.IRCClient.quit(self, message)
         self.factory.shutdown()
+        
+    def restart(self, message="Restarting..."):
+        self.factory.sstate['exitcode'] = 3
+        self.factory.shutdownAll(message)
 
     def join(self, channel, key=None):
         channel = channel.lower()

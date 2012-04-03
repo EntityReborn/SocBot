@@ -9,6 +9,27 @@ class Plugin(Base):
         """PING - Ask the bot to respond with 'Pong'"""
         return "Pong!"
     
+    @Base.trigger("RESTART")
+    def on_restart(self, bot, user, details):
+        """RESTART - Ask the bot to restart"""
+        
+        if not self.userHasPerm(user, 'general.restart'):
+            raise InsuffPerms, "general.restart"
+        
+        bot.restart()
+        
+    @Base.trigger("SHUTDOWN", "DIAF")
+    def on_shutdown(self, bot, user, details):
+        """SHUTDOWN [message] - Ask the bot to shutdown"""
+        
+        if not self.userHasPerm(user, 'general.shutdown'):
+            raise InsuffPerms, "general.shutdown"
+        
+        if details['fullmsg']:
+            bot.shutdown(details['fullmsg'])
+        else:
+            bot.shutdown()
+    
     @Base.trigger("BOTTIME")
     def on_bottime(self, bot, user, details):
         """BOTTIME - Ask the bot to respond with the time of it's computer"""
