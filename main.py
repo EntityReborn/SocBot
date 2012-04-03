@@ -108,7 +108,7 @@ class main(object):
 if __name__ == "__main__":
     import argparse, signal
     
-    lvl = logging.DEBUG
+    lvl = logging.DEBUG # Should make this a variable.
     log = logging.getLogger("main")
     
     botlog = addLogger("socbot", lvl)
@@ -145,6 +145,7 @@ if __name__ == "__main__":
                     bot.quit("CTRL-C")
 
     signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
 
     m = main(dir, sstate)
 

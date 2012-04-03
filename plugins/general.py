@@ -26,9 +26,9 @@ class Plugin(Base):
             raise InsuffPerms, "general.shutdown"
         
         if details['fullmsg']:
-            bot.shutdown(details['fullmsg'])
+            bot.quit(details['fullmsg'])
         else:
-            bot.shutdown()
+            bot.quit()
     
     @Base.trigger("BOTTIME")
     def on_bottime(self, bot, user, details):

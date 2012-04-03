@@ -213,7 +213,8 @@ class PluginManager(object):
 
         if "instance" in moduleinfo and moduleinfo["instance"]:
             raise PluginAlreadyEnabled, name
-
+        
+        moduleinfo["info"].reload()
         moduleinfo["info"]["general"]["enabled"] = True
         moduleinfo["info"].write()
 
@@ -239,7 +240,8 @@ class PluginManager(object):
 
         moduleinfo["instance"].disabling()
         self._killplugin(moduleinfo)
-
+        
+        moduleinfo["info"].reload()
         moduleinfo["info"]["general"]["enabled"] = False
         moduleinfo["info"].write()
 
