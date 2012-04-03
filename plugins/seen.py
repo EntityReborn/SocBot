@@ -3,6 +3,8 @@ from datetime import datetime
 
 from socbot.pluginbase import Base, BadParams
 
+import pastie
+
 class UserInfo(object):
     def __init__(self):
         self.channels = defaultdict(dict)
@@ -17,12 +19,25 @@ class UserInfo(object):
         self.channels[channel]["timestamp"] = datetime.now()
         
         if type != "QUIT":
+            tosend = list()
+                
             for msgdata in self.tellmsgs:
                 time = datetime.strftime(msgdata['date'], '%c')
-                self.bot.msg(self.nick, "{0} in {1} asked to tell you the following: {2} ({3})".format(
-                    msgdata['from'].nick, msgdata['channel'], msgdata['text'], time))
-                
-            self.tellmsgs = list()
+                text = "{0} in {1} asked to tell you the following: {2} ({3})".format(
+                    msgdata['from'].nick, msgdata['channel'], msgdata['text'], time)
+                tosend.append(text)
+            
+            if tosend:
+                if not len(tosend) > 4:
+                    for text in tosend:
+                        self.bot.msg(self.nick, text)
+                else:
+                    tosend = ["Things people wanted you to know:",] + tosend + \
+                        ['(It is currently %s)' % datetime.strftime(datetime.now(), '%c')]
+                    url = pastie.pastie("\n".join(tosend))
+                    self.bot.msg(self.nick, "Please check out %s for a list of things people wanted to tell you." % url)
+                    
+                self.tellmsgs = list()
 
     def seen(self, channel):
         return self.channels[channel.lower()]
