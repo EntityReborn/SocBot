@@ -18,7 +18,7 @@ class UserInfo(object):
         self.channels[channel]["extra"] = extra
         self.channels[channel]["timestamp"] = datetime.now()
         
-        if type != "QUIT":
+        if not type in ["QUIT", "JOIN"]:
             tosend = list()
                 
             for msgdata in self.tellmsgs:
