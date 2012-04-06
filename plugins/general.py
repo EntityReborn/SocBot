@@ -13,7 +13,7 @@ class Plugin(Base):
     def on_restart(self, bot, user, details):
         """RESTART - Ask the bot to restart"""
         
-        if not self.userHasPerm(user, 'general.restart'):
+        if not user.hasPerm('general.restart'):
             raise InsuffPerms, "general.restart"
         
         bot.restart()
@@ -22,7 +22,7 @@ class Plugin(Base):
     def on_shutdown(self, bot, user, details):
         """SHUTDOWN [message] - Ask the bot to shutdown"""
         
-        if not self.userHasPerm(user, 'general.shutdown'):
+        if not user.hasPerm('general.shutdown'):
             raise InsuffPerms, "general.shutdown"
         
         if details['fullmsg']:
@@ -49,7 +49,7 @@ class Plugin(Base):
         parts = details["splitmsg"]
         command = details["trigger"]
 
-        if not self.userHasPerm(user, 'general.join'):
+        if not user.hasPerm('general.join'):
             raise InsuffPerms, "general.join"
         
         if parts:
@@ -72,7 +72,7 @@ class Plugin(Base):
         parts = details["splitmsg"]
         command = details["trigger"]
 
-        if not self.userHasPerm(user, 'general.part'):
+        if not user.hasPerm('general.part'):
             raise InsuffPerms, "general.part"
         
         if parts:

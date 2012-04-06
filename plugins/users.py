@@ -1,9 +1,6 @@
-# Hopefully we'll get around to embedding this in the bot code, as opposed to
-# it being a plugin. While still in alpha stage, makes more sense as the code
-# could still be changed often.
-
 from socbot.pluginbase import Base, BadParams
-from socbot.usermanager import prefixes, BadEmail
+from socbot.userdb import prefixes, BadEmail, NoSuchUser
+from socbot.userdb import UserAlreadyExists, UserNotLoggedIn
 
 from twisted.words.protocols.irc import parseModes
 
@@ -14,18 +11,11 @@ class Plugin(Base):
 
     def afterReload(self):
         sstate = self.manager.sstate
+        
         for name, botlist in sstate["bots"].iteritems():
             for bot in botlist:
                 for chan in bot.channels:
                     bot.sendLine('WHO %s'%chan)
-
-    @Base.event("PRIVMSG")
-    def on_msg(self, bot, command, prefix, params):
-        nick, hostmask = prefix.split("!")
-        user = bot.factory.users[nick]
-
-        if user:
-            user.hostmask = hostmask
 
     @Base.event("MODE")
     def on_mode(self, bot, command, prefix, params):
@@ -47,7 +37,7 @@ class Plugin(Base):
             for mode, nick in added:
                 if nick:
                     try:
-                        user = bot.factory.users[nick]
+                        user = bot.users.getUser(nick)
 
                         if not mode in user.channels[channel].modes:
                             user.channels[channel].modes += mode
@@ -58,19 +48,13 @@ class Plugin(Base):
             for mode, nick in removed:
                 if nick:
                     try:
-                        user = bot.factory.users[nick]
+                        user = bot.users.getUser(nick)
 
                         if mode in user.channels[channel].modes:
                             newmodes = user.channels[channel].modes.replace(mode, "")
                             user.channels[channel].modes = newmodes
                     except KeyError:
                         pass
-
-    @Base.event("NICK")
-    def on_nick(self, bot, command, prefix, params):
-        newnick = params[0]
-        oldnick = prefix.split("!")[0]
-        bot.factory.users.nick(oldnick, newnick)
 
     @Base.event("RPL_WHOREPLY")
     def on_who(self, bot, command, prefix, params):
@@ -82,12 +66,7 @@ class Plugin(Base):
         nick = params[5]
         flags = params[6]
 
-        try:
-            usr = bot.factory.users[nick]
-        except KeyError:
-            usr = bot.factory.users.add(nick)
-
-        usr.hostmask = "%s@%s" % (username, host)
+        usr = bot.users.getUser(nick)
         usr.channels[channel].modes = flags
 
     @Base.event("JOIN")
@@ -95,44 +74,21 @@ class Plugin(Base):
         nick, host = prefix.split('!')
         channel = params[-1]
 
-        if not nick == bot.nickname:
-            if channel[0] in "#":
-                user = bot.factory.users.join(nick, channel, host)
-
-                user.hostmask = host
-        else:
+        if nick == bot.nickname:
             bot.sendLine('WHO %s'%channel)
-
-    @Base.event("PART")
-    def on_part(self, bot, command, prefix, params):
-        parts = prefix.split('!')
-        nick, host = parts[0], parts[1]
-        channel = params[0]
-
-        if not nick == bot.nickname:
-            user = bot.factory.users.part(nick, params[0])
-
-            if user:
-                user.hostmask = host
-
-    @Base.event("QUIT")
-    def on_quit(self, bot, command, prefix, params):
-        nick = prefix.split('!')[0]
-        bot.factory.users.quit(nick)
 
     def print_user(self, usr):
         string = ""
 
-        if usr.loggedIn():
-            string += "[ Logged in as: %s ] " % usr.userinfo[0]
-
-        string += "[ mask: %s ]" % usr.hostmask
+        if usr.isLoggedIn():
+            string += "[ Logged in as: %s ] " % usr.registration.username
+            
         string += " [ chans: "
 
         chans = list()
 
         for name, chan in usr.channels.iteritems():
-            chans.append("%s (%s)" % (chan.name, "".join(chan.modes)))
+            chans.append("%s (%s)" % (name, "".join(chan.modes)))
 
         string += ", ".join(chans) + " ]"
 
@@ -151,7 +107,7 @@ class Plugin(Base):
         else:
             return BadParams
         
-        userdata = bot.factory.users[user]
+        userdata = bot.users.getUser(user.lower())
         
         if "@" in userdata.channels[channel].modes:
             return "This user is an op!"
@@ -175,7 +131,7 @@ class Plugin(Base):
         else:
             raise BadParams
 
-        usr = bot.factory.users.logIn(user.nick, usrname, pass_)
+        usr = user.loginPassword(usrname, pass_)
 
         if usr:
             return "Authentication successful!"
@@ -185,9 +141,11 @@ class Plugin(Base):
     @Base.trigger("LOGOUT")
     def on_logout(self, bot, user, details):
         """LOGOUT - Log out from the bot."""
-        usr = bot.factory.users[user.nick]
-        usr.logOut()
-
+        try:
+            user.logout()
+        except UserNotLoggedIn:
+            return "You are not logged in!"
+        
         return "Goodbye!"
 
     @Base.trigger("REGISTER")
@@ -207,9 +165,11 @@ class Plugin(Base):
         email = parts.pop(0)
 
         try:
-            usr = bot.factory.users.register(user.nick, usrname, pass_, email)
+            usr = user.register(usrname, pass_, email)
         except BadEmail:
             return "Erroneous email provided: {0}".format(email)
+        except UserAlreadyExists:
+            return "That user already exists! Please choose a different username."
 
         return "Welcome to the club!"
     
@@ -217,34 +177,23 @@ class Plugin(Base):
     def in_addmask(self, bot, user, details):
         nick, hostmask = details['fulluser'].split("!")
         
-        bot.factory.sstate['users'].reload()
-        c = bot.factory.sstate['users']['users'][nick]
-        hostmask = hostmask.split('@')[1]
+        try:
+            user.addHostmask(hostmask)
+        except UserNotLoggedIn:
+            return "You need to login!"
         
-        if not hostmask in c['hostmasks']:    
-            c['hostmasks'].append(hostmask)
-            bot.factory.sstate['users'].write()
-            
-            return "Mask added."
-        
-        return "This mask is already added."
+        return "Mask added."
     
     @Base.trigger("REMMASK")
     def in_remmask(self, bot, user, details):
         nick, hostmask = details['fulluser'].split("!")
         
-        bot.factory.sstate['users'].reload()
-        c = bot.factory.sstate['users']['users'][nick]
-        hostmask = hostmask.split('@')[1]
+        try:
+            user.remHostmask(hostmask)
+        except UserNotLoggedIn:
+            return "You need to login!"
         
-        
-        if hostmask in c['hostmasks']:    
-            c['hostmasks'].remove(hostmask)
-            bot.factory.sstate['users'].write()
-            
-            return "Mask removed."
-        
-        return "This mask is not registered."
+        return "Mask removed."
 
     @Base.trigger("USERINFO")
     def on_userinfo(self, bot, user, details):
@@ -258,7 +207,7 @@ class Plugin(Base):
             nick = parts.pop(0).lower()
 
         if nick:
-            usr = bot.factory.users[nick]
+            usr = bot.users.getUser(nick)
 
             if usr:
                 return self.print_user(usr)

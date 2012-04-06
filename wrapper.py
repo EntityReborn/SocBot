@@ -6,7 +6,7 @@ if __name__ == "__main__":
     code = 3
     inst = None
     
-    def handler():
+    def handler(signum, stackframe):
         inst.terminate()
         
     signal.signal(signal.SIGTERM, handler)

@@ -55,16 +55,22 @@ class UserInfo(object):
         time = datetime.datetime.strftime(time, '%c')
         if type == "NICK":
             return "{0}: User changed nicks to {1}".format(time, extra)
+        
         elif type == "JOIN":
             return "{0}: User joined {1}".format(time, channel)
+        
         elif type == "PRIVMSG":
-            if extra.startswith('\x01'):
+            if extra.startswith('\x01ACTION'):
                 return "{0}: User did an action: '{1}'".format(time, extra[8:-1])
+            
             return "{0}: User said: '{1}'".format(time, extra)
+        
         elif type == "RPL_NAMREPLY":
             return "User was here when I joined."
+        
         elif type == "QUIT":
             return "User quit."
+        
         elif type == "PART":
             return "User left the channel."
         

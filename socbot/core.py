@@ -5,7 +5,7 @@ from twisted.words.protocols import irc
 from twisted.internet import protocol, reactor
 from socbot.pluginbase import InsuffPerms, BadParams
 
-from socbot.usermanager import UserManager
+from socbot.userdb import UserDB, UnknownHostmask, NoSuchUser
 
 # Credits to ibid for some helpful code:
 # - Ping ponger
@@ -103,9 +103,35 @@ class Bot(irc.IRCClient):
         if command == "ERROR":
             self.log.debug("command `{0}`, from prefix `{1}`, with params `{2}`".format(
                 command, prefix, params))
-
+            
+        if command in ['JOIN', 'PART', 'NICK', 'PRIVMSG', 'NOTICE']:
+            if "!" in prefix:
+                username, hostmask = prefix.split("!")
+                usr = self.users.getUser(username)
+                
+                if not usr.isLoggedIn():
+                    try:
+                        usr.loginHostmask(hostmask)
+                    except UnknownHostmask:
+                        pass
+                    except NoSuchUser:
+                        pass
+                        
+            if command == 'NICK':
+                usr.nickChanged(self, params[0])
+            elif command == 'JOIN':
+                usr.joined(self, params[-1])
+            elif command == 'PART':
+                usr.parted(self, params[0])
+            
         self.factory.sstate["pluginmanager"].triggerEvent(command,
             self, command, prefix, params)
+        
+        if command == 'QUIT':
+            usrname = prefix.split("!")[0].lower()
+            usr = self.users.getUser(oldnick)
+            
+            usr.quit(self)
 
         irc.IRCClient.handleCommand(self, command, prefix, params)
 
@@ -131,13 +157,13 @@ class Bot(irc.IRCClient):
             channel = user.split("!")[0]
 
         trigger = msg.split()[0].upper()
-        usr = self.factory.users[nick]
+        usr = self.users.getUser(nick.lower())
         pm = self.factory.sstate["pluginmanager"]
         splitmsg = msg.split()
+        
         details = {
             "fullmsg": msg,
             "fulluser": user,
-            "userobj": usr,
             "splitmsg": splitmsg,
             "trigger": splitmsg.pop(0).lower(),
             "channel": channel,
@@ -241,7 +267,7 @@ class BotFactory(protocol.ReconnectingClientFactory):
         self.core = main
         self.config = config
         self.shuttingdown = False
-        self.users = UserManager(sstate)
+        self.users = UserDB('conf/%s-users.db' % name)
 
     def clientConnectionLost(self, connector, unused_reason):
         self.log.info("connection lost")
@@ -257,6 +283,7 @@ class BotFactory(protocol.ReconnectingClientFactory):
 
         p = protocol.ReconnectingClientFactory.buildProtocol(self, addr)
         p.nickname = self.config['nickname']
+        p.users = self.users
         p.log = logging.getLogger("socbot."+self.name)
 
         return p

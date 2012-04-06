@@ -43,7 +43,7 @@ class Plugin(Base): # Must subclass Base
     def on_define(self, bot, user, details):
         """ADDFACT <id> <message> - define a factoid"""
         
-        if not self.userHasPerm(user, 'factoids.define'):
+        if not user.hasPerm('factoids.define'):
             raise InsuffPerms, "factoids.define"
         
         if len(details['splitmsg']) < 2:
@@ -57,7 +57,7 @@ class Plugin(Base): # Must subclass Base
     def on_remove(self, bot, user, details):
         """REMFACT <id> - remove a factoid"""
         
-        if not self.userHasPerm(user, 'factoids.remove'):
+        if not user.hasPerm('factoids.remove'):
             raise InsuffPerms, "factoids.remove"
         
         if len(details['splitmsg']) < 1:

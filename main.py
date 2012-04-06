@@ -139,7 +139,8 @@ if __name__ == "__main__":
     sstate = {}
 
     def handle_signal(signum, stackframe):
-        if signum == signal.SIGINT:
+        if signum == signal.SIGINT or \
+        signum == signal.SIGTERM:
             for name, bots in sstate["bots"].iteritems():
                 for bot in bots:
                     bot.quit("CTRL-C")

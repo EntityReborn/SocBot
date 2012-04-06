@@ -8,8 +8,8 @@ class Plugin(Base):
         parts = details["splitmsg"]
         command = details["trigger"]
 
-        if not self.userHasPerm(user, command):
-            raise InsuffPerms, "config."+command
+        if not user.HasPerm("config.config"):
+            raise InsuffPerms, "config.config"
 
         if not parts:
             raise BadParams

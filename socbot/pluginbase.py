@@ -65,29 +65,3 @@ class Base(object):
 
     def finalize(self, *args, **kwargs):
         pass
-
-    def userHasPerm(self, user, permpath):
-        path = permpath.lower().split(".")
-
-        if not user.loggedIn():
-            return False
-
-        userperms = user.userinfo[1]["permissions"]
-
-        if "*" in userperms:
-            return True
-
-        if permpath in self.info["general"]["autoallowperms"]:
-            return True
-
-        curpath = self.info["general"]["name"]
-
-        for perm in path:
-            if "{0}.*".format(curpath) in userperms:
-                return True
-            if "{0}.{1}".format(curpath, perm) in userperms:
-                return True
-
-            curpath = "{0}.{1}".format(curpath, perm)
-
-        return False

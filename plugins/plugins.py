@@ -8,8 +8,8 @@ class Plugin(Base):
         parts = details["splitmsg"]
         command = details["trigger"]
 
-        if not self.userHasPerm(user, command):
-            raise InsuffPerms, "plugins."+command
+        if not user.hasPerm("plugins.reload"):
+            raise InsuffPerms, "plugins.reload"
 
         if not parts:
             self.manager.reloadPlugins()
@@ -31,7 +31,7 @@ class Plugin(Base):
         parts = details["splitmsg"]
         command = details["trigger"]
 
-        if not self.userHasPerm(user, command):
+        if not user.hasPerm('plugins.'+command):
             raise InsuffPerms, "plugins."+command
 
         if not parts:
