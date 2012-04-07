@@ -19,7 +19,7 @@ class Plugin(Base):
         if type == "PLUGIN":
             return self.on_plugconf(bot, user, details)
         elif type == "RELOAD":
-            bot.factory.sstate["baseconfig"].reload()
+            bot.factory.reloadConfig()
             return True
         elif type == "BASE":
             return self.on_baseconf(bot, user, details)
@@ -34,6 +34,8 @@ class Plugin(Base):
             return "Unknown plugin, '{0}'".format(plugname)
 
         plug = self.manager.moduleinfo[plugname.upper()]
+        
+        return "Not implemented!"
 
     def on_baseconf(self, bot, user, details):
         """CONFIG BASE <some.path> [SET <data>] - Reply with base config data, or set data if SET is used."""
@@ -45,8 +47,7 @@ class Plugin(Base):
         
         path = parts.pop(0).lower()
 
-        section = bot.factory.sstate["baseconfig"]
-        section.reload()
+        section = bot.baseConfig()
         
         try:
             config = section.getByPath(path.split("."))

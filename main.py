@@ -52,8 +52,6 @@ class main(object):
             log.error('\n'.join(invalid))
             return False
 
-        self.sstate["baseconfig"] = self.config
-
         return True
 
     def loadUsers(self):

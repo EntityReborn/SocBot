@@ -1,6 +1,6 @@
-from socbot.pluginbase import Base, BadParams
-from socbot.userdb import prefixes, BadEmail, NoSuchUser
-from socbot.userdb import UserAlreadyExists, UserNotLoggedIn
+from socbot.pluginbase import Base, BadParams, InsuffPerms
+from socbot.userdb import prefixes, BadEmail, NoSuchUser, BadPass
+from socbot.userdb import UserAlreadyExists, UserNotLoggedIn, NoSuchUser
 
 from twisted.words.protocols.irc import parseModes
 
@@ -83,7 +83,7 @@ class Plugin(Base):
         if usr.isLoggedIn():
             string += "[ Logged in as: %s ] " % usr.registration.username
             
-        string += " [ chans: "
+        string += "[ Hostmask: %s ] [ Channels: " % usr.hostmask
 
         chans = list()
 
@@ -130,8 +130,13 @@ class Plugin(Base):
             pass_ = parts.pop(0)
         else:
             raise BadParams
-
-        usr = user.loginPassword(usrname, pass_)
+        
+        try:
+            usr = user.loginPassword(usrname, pass_)
+        except BadPass:
+            return "Bad password!"
+        except NoSuchUser:
+            return "Unknown user!"
 
         if usr:
             return "Authentication successful!"
@@ -182,7 +187,7 @@ class Plugin(Base):
         except UserNotLoggedIn:
             return "You need to login!"
         
-        return "Mask added."
+        return True
     
     @Base.trigger("REMMASK")
     def in_remmask(self, bot, user, details):
@@ -193,7 +198,71 @@ class Plugin(Base):
         except UserNotLoggedIn:
             return "You need to login!"
         
-        return "Mask removed."
+        return True
+    
+    @Base.trigger("ADDPERM")
+    def in_addperm(self, bot, user, details):
+        """ADDPERM <user> <perm>[ <perm> ...] - Give a user one or more permission nodes."""
+        nick, hostmask = details['fulluser'].split("!")
+        
+        if len(details['splitmsg']) >= 2:
+            try:
+                usr = bot.users.getUser(details['splitmsg'].pop(0).lower())
+            except NoSuchUser:
+                return "Unknown user."
+            
+            try:
+                if not user.hasPerm("users.permissions.add"):
+                    raise InsuffPerms, 'users.permissions.add'
+                
+                for perm in details['splitmsg']:
+                    user.addPerm(perm)
+            except UserNotLoggedIn:
+                return "You need to login!"
+        
+        return True
+    
+    @Base.trigger("HASPERM")
+    def on_hasperm(self, bot, user, details):
+        """HASPERM <user> <permnode> - Check if a user has a specified user permission"""
+        nick, hostmask = details['fulluser'].split("!")
+        
+        if len(details['splitmsg']) == 2:
+            try:
+                usr = bot.users.getUser(details['splitmsg'].pop(0).lower())
+            except NoSuchUser:
+                return "Unknown user."
+            
+            retn = user.hasPerm(details['splitmsg'][0])
+            
+            if retn:
+                return "User has this permission."
+            
+            return "User does NOT have this permission."
+        else:
+            return BadParams
+            
+    @Base.trigger("REMPERM")
+    def in_remperm(self, bot, user, details):
+        """REMPERM <user> <perm>[ <perm> ...] - Deny a user one or more permission nodes."""
+        nick, hostmask = details['fulluser'].split("!")
+        
+        if len(details['splitmsg']) >= 2:
+            try:
+                usr = bot.users.getUser(details['splitmsg'].pop(0).lower())
+            except NoSuchUser:
+                return "Unknown user."
+            
+            try:
+                if not user.hasPerm("users.permissions.remove"):
+                    raise InsuffPerms, 'users.permissions.remove'
+                
+                for perm in details['splitmsg']:
+                    user.remPerm(perm)
+            except UserNotLoggedIn:
+                return "You need to login!"
+        
+        return True
 
     @Base.trigger("USERINFO")
     def on_userinfo(self, bot, user, details):

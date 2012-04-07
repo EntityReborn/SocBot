@@ -108,6 +108,7 @@ class Bot(irc.IRCClient):
             if "!" in prefix:
                 username, hostmask = prefix.split("!")
                 usr = self.users.getUser(username)
+                usr.hostmask = hostmask
                 
                 if not usr.isLoggedIn():
                     try:
@@ -146,9 +147,9 @@ class Bot(irc.IRCClient):
         match = re.search('^[ ]*{0}[:,][ ]*(.*)$'.format(self.nickname), msg)
 
         if channel.lower() != self.nickname.lower():
-            if match and self.factory.sstate['baseconfig']['general']['nicktrigger'].lower() == 'true':
+            if match and self.generalConfig()['nicktrigger'].lower() == 'true':
                 msg = match.group(1)
-            elif msg[0] in self.factory.sstate['baseconfig']['general']['commandchars']:
+            elif msg[0] in self.generalConfig()['commandchars']:
                 msg = msg[1:]
             else:
                 return
@@ -214,32 +215,30 @@ class Bot(irc.IRCClient):
 
     def join(self, channel, key=None):
         channel = channel.lower()
+        config = self.serverConfig()
         
-        if not channel in self.factory.config["channels"]:
-            self.factory.config.root().reload()
-            
-            self.factory.config["channels"][channel] = {
+        if not channel in config["channels"]:
+            config["channels"][channel] = {
                 "autojoin": True
             }
         else:
-            self.factory.config["channels"][channel]["autojoin"] = True
+            config["channels"][channel]["autojoin"] = True
         
         if key:
-            self.factory.config["channels"][channel]["password"] = key
+            config["channels"][channel]["password"] = key
 
-        self.factory.config.root().write()
+        self.saveConfig()
 
         irc.IRCClient.join(self, channel, key)
 
     def leave(self, channel, msg):
         channel = channel.lower()
+        config = self.serverConfig()
 
-        if channel in self.factory.config["channels"]:
-            self.factory.config.root().reload()
-            
-            self.factory.config["channels"][channel]['autojoin'] = False
+        if channel in config["channels"]:
+            config["channels"][channel]['autojoin'] = False
 
-            self.factory.config.root().write()
+            self.saveConfig()
 
         irc.IRCClient.leave(self, channel, msg)
 
@@ -254,6 +253,22 @@ class Bot(irc.IRCClient):
         
         if channel.lower() in self.channels:
             self.channels.remove(channel.lower())
+            
+    def serverConfig(self):
+        return self.baseConfig()['servers'][self.factory.name]
+    
+    def generalConfig(self):
+        return self.baseConfig()['general']
+    
+    def baseConfig(self):
+        self.factory.core.config.reload()
+        return self.factory.core.config
+        
+    def saveConfig(self):
+        self.factory.core.config.write()
+        
+    def reloadConfig(self):
+        self.factory.core.config.reload()
 
 class BotFactory(protocol.ReconnectingClientFactory):
     protocol = Bot
