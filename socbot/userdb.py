@@ -235,7 +235,7 @@ class User(object):
         del self.channels[channel.lower()]
         
     def quit(self, bot):
-        self.db.quit(bot)
+        self.db.quit(bot, self.nick)
         
     def addPerm(self, node):
         self.registration.addPerm(node)
