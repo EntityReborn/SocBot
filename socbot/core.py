@@ -130,7 +130,7 @@ class Bot(irc.IRCClient):
         
         if command == 'QUIT':
             usrname = prefix.split("!")[0].lower()
-            usr = self.users.getUser(oldnick)
+            usr = self.users.getUser(usrname)
             
             usr.quit(self)
 
