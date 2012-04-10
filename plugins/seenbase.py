@@ -63,10 +63,14 @@ class SeenManager(object):
         channel = channel.lower()
         type = type.upper()
         
-        seen = Seen(target, channel, datetime.datetime.now(), type, data)
+        seen = Seen(target, channel, datetime.datetime.now(), type, unicode(data))
         self.session.add(seen)
         
-        self.session.commit()
+        try:
+            self.session.commit()
+        except InvalidRequestError, e:
+            self.session.rollback()
+            
         return seen
     
     def getLastSeen(self, target, channel):

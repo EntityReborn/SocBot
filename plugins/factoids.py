@@ -26,7 +26,7 @@ class Plugin(Base): # Must subclass Base
             
         return str(response)
     
-    @Base.trigger("?>")
+    @Base.trigger("?>", "TELLFACT")
     def on_tell(self, bot, user, details):
         """?> <nick> <id> - tell a user about a factoid"""
         if len(details['splitmsg']) < 2:
