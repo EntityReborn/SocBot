@@ -17,13 +17,14 @@ class Plugin(Base):
             return
         
         said = params[1]
-        channel = params[0]
+        channel = params[0].lower()
         
         match = titlepattern.search(said)
         
         if match:
             url = match.group('url')
             pro = match.group('protocol')
+            
             if not pro:
                 url = "http://" + url
                 
@@ -41,7 +42,7 @@ class Plugin(Base):
             if not details["channel"].lower() in self.bots[bot]:
                 return "No URL has been said recently in this channel."
             
-            url = self.bots[bot][details['channel']]
+            url = self.bots[bot][details['channel'].lower()]
         else:
             url = details['splitmsg'][0]
             match = urlpattern.match(url)
@@ -63,7 +64,7 @@ class Plugin(Base):
         
         title = BeautifulSoup(page).title.string
         
-        return "%s: %s" % (url, title)
+        return "%s (%s)" % (title, url)
         
     @Base.trigger("UP", "DOWN")
     def on_up(self, bot, user, details):
