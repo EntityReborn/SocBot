@@ -179,8 +179,6 @@ class Plugin(Base):
         
         channel = channel.lower()
         
-        log.info("%s in %s" % (channel, bot.channels))
-        
         if not channel in bot.channels:
             return "I am not in {0}".format(channel)
         
