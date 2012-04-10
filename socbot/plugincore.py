@@ -195,7 +195,7 @@ class PluginCore(object):
                 try:
                     tracker.fireEvent(event, *args)
                 except Exception:
-                    log.exception("exception firing %s in $s" % (event, tracker.filename))
+                    log.exception("exception firing %s in %s" % (event, tracker.filename))
                     
                 if self._event_blocked:
                     break
