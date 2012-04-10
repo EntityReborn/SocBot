@@ -9,7 +9,7 @@ from twisted.application import internet
 from socbot.config import ConfigObj
 
 from socbot.core import BotFactory
-from socbot.pluginmanager import PluginManager
+from socbot.plugincore import PluginCore
 from socbot.tools import validateConfig
 from socbot.log import addLogger
 from socbot import process
@@ -74,7 +74,7 @@ class main(object):
     def loadPlugs(self):
         log.info("starting pluginmanager and loading plugins")
 
-        pm = PluginManager(self.sstate)
+        pm = PluginCore(self.sstate)
         self.sstate["pluginmanager"] = pm
         pm.loadPlugins()
         pm.initPlugins()

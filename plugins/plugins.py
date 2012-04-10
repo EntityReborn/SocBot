@@ -1,5 +1,5 @@
 from socbot.pluginbase import Base, InsuffPerms, BadParams
-from socbot.pluginmanager import NoSuchPlugin, PluginAlreadyEnabled, PluginAlreadyDisabled
+from socbot.plugincore import NoSuchPlugin, PluginNotLoaded, PluginAlreadyLoaded
 
 class Plugin(Base):
     @Base.trigger("RELOAD")
@@ -12,12 +12,12 @@ class Plugin(Base):
             raise InsuffPerms, "plugins.reload"
 
         if not parts:
-            self.manager.reloadPlugins()
+            self.manager.core.reloadPlugins()
         elif len(parts) == 1:
             plugname = parts.pop(0)
 
             try:
-                self.manager.reloadPlugin(plugname)
+                self.manager.core.reloadPlugin(plugname)
             except NoSuchPlugin:
                 return "No such plugin: {0}".format(plugname)
         else:
@@ -41,17 +41,17 @@ class Plugin(Base):
 
         if command == "enable":
             try:
-                self.manager.enablePlug(plugname)
+                self.manager.core.enablePlug(plugname)
             except NoSuchPlugin:
                 return "No such plugin, '{0}'.".format(plugname)
-            except PluginAlreadyEnabled:
+            except PluginAlreadyLoaded:
                 return "'{0}' already enabled.".format(plugname)
         elif command == "disable":
             try:
-                self.manager.disablePlug(plugname)
+                self.manager.core.disablePlug(plugname)
             except NoSuchPlugin:
                 return "No such plugin, '{0}'.".format(plugname)
-            except PluginAlreadyDisabled:
+            except PluginNotLoaded:
                 return "'{0}' already disabled.".format(plugname)
 
         return True

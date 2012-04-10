@@ -172,11 +172,11 @@ class Bot(irc.IRCClient):
         }
         
         result = None
-
-        if trigger in pm.triggers:
+        
+        func = pm.getTrigger(trigger)
+            
+        if func:
             self.log.debug("trigger: {0}".format(trigger))
-
-            func = pm.getTrigger(trigger)
 
             try:
                 result = func(self, usr, details)

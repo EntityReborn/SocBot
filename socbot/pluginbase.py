@@ -36,7 +36,7 @@ class Base(object):
         return call
 
     def _initTrigs(self):
-        name = self.info["info"]["general"]["name"]
+        name = self.info["general"]["name"]
         members = getmembers(self)
 
         for funcdata in members:
@@ -51,17 +51,16 @@ class Base(object):
     def blockEvent(self):
         self.manager._event_blocked = True
 
-    def beforeReload(self, *args, **kwargs):
+    def preReload(self, *args, **kwargs):
         pass
 
-    def afterReload(self, *args, **kwargs):
-        pass
-
-    def disabling(self, *args, **kwargs):
+    def postReload(self, *args, **kwargs):
         pass
 
     def enabled(self, *args, **kwargs):
         pass
-
+    
+    def disabling(self, *args, **kwargs):
+        pass
     def finalize(self, *args, **kwargs):
         pass
