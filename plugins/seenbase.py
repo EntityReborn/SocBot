@@ -60,8 +60,10 @@ class SeenManager(object):
         
     def addSeen(self, target, channel, type, data):
         target = target.lower()
+        channel = channel.lower()
+        type = type.upper()
         
-        seen = Seen(target, channel, datetime.datetime.now(), type.upper(), data)
+        seen = Seen(target, channel, datetime.datetime.now(), type, data)
         self.session.add(seen)
         
         self.session.commit()
@@ -69,9 +71,10 @@ class SeenManager(object):
     
     def getLastSeen(self, target, channel):
         target = target.lower()
+        channel = channel.lower()
         
         exists = self.session.query(Seen).filter_by(target=target).\
-            filter_by(channel=channel.lower()).order_by(Seen.time.desc())
+            filter_by(channel=channel).order_by(Seen.time.desc())
         
         if not exists.count():
             return None
@@ -80,9 +83,10 @@ class SeenManager(object):
     
     def getRangedSeen(self, target, channel, count):
         target = target.lower()
+        channel = channel.lower()
         
         exists = self.session.query(Seen).filter_by(target=target).\
-            filter_by(channel=channel.lower()).order_by(Seen.time.desc())
+            filter_by(channel=channel).order_by(Seen.time.desc())
         
         if not exists.count():
             return []
@@ -91,6 +95,8 @@ class SeenManager(object):
 
     def addTell(self, target, sender, channel, text):
         target = target.lower()
+        channel = channel.lower()
+        sender = sender.lower()
 
         tell = Tell(target, sender, channel, datetime.datetime.now(), text)
         self.session.add(tell)
@@ -110,7 +116,8 @@ class SeenManager(object):
         return response
 
     def clearTells(self, target):
-        exists = self.session.query(Tell).filter_by(target=target.lower())
+        target = target.lower()
+        exists = self.session.query(Tell).filter_by(target=target)
 
         for item in exists.all():
             self.session.delete(item)

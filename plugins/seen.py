@@ -53,6 +53,7 @@ class UserInfo(object):
         extra = chan["extra"]
 
         time = datetime.datetime.strftime(time, '%c')
+        
         if type == "NICK":
             return "{0}: User changed nicks to {1}".format(time, extra)
         
@@ -167,19 +168,24 @@ class Plugin(Base):
         if not match:
             raise BadParams
         
-        nick = match.group('nick')
-        
+        nick = match.group('nick').lower()
         channel = match.group('channel')
+        
         if not channel:
             if details["wasprivate"]:
                 return "You need to specify a channel!"
             else:
-                channel = details["channel"].lower()
+                channel = details["channel"]
+        
+        channel = channel.lower()
+        
+        log.info("%s in %s" % (channel, bot.channels))
         
         if not channel in bot.channels:
             return "I am not in {0}".format(channel)
         
         count = match.group('count')
+        
         if not count:
             data = self.manager.getLastSeen(nick, channel)
             return self.seenLine(data)
