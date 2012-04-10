@@ -81,7 +81,7 @@ pattern = re.compile(r"^(?P<nick>[^ ]+)(?:\s+(?P<channel>#[^ ]+))?(?:\s+(?P<coun
 
 class Plugin(Base):
     def initialize(self, *args, **kwargs):
-        self.manager = seenbase.SeenManager("conf/seen.db")
+        self.seenmanager = seenbase.SeenManager("conf/seen.db")
 
     @Base.event("NICK", "PRIVMSG", "JOIN", "PART", "QUIT")
     def on_updateseen(self, bot, command, prefix, params):
@@ -93,13 +93,13 @@ class Plugin(Base):
             msg = ""
 
         channel = params[0]
-        self.manager.addSeen(nick, channel, command, msg)
+        self.seenmanager.addSeen(nick, channel, command, msg)
         
         if command == 'PRIVMSG':
             self.checkTell(bot, nick)
         
     def checkTell(self, bot, nick):
-        tells = self.manager.getTells(nick)
+        tells = self.seenmanager.getTells(nick)
         tosend = []
         
         for tell in tells:
@@ -118,7 +118,7 @@ class Plugin(Base):
                 url = pastie.pastie("\n".join(tosend))
                 bot.msg(nick, "Please check out %s for a list of things people wanted to tell you." % url)
                 
-            self.manager.clearTells(nick)
+            self.seenmanager.clearTells(nick)
                 
     def seenLine(self, data):
         if not data:
@@ -154,7 +154,7 @@ class Plugin(Base):
         if len(parts) >= 2:
             nick = parts[0].lower()
             
-            self.manager.addTell(nick, user.nick, channel, " ".join(parts[1::]))
+            self.seenmanager.addTell(nick, user.nick, channel, " ".join(parts[1::]))
             
             return "I'll let them know!"
         
@@ -185,10 +185,10 @@ class Plugin(Base):
         count = match.group('count')
         
         if not count:
-            data = self.manager.getLastSeen(nick, channel)
+            data = self.seenmanager.getLastSeen(nick, channel)
             return self.seenLine(data)
         else:
-            data = self.manager.getRangedSeen(nick, channel, int(count))
+            data = self.seenmanager.getRangedSeen(nick, channel, int(count))
             tosend = []
                 
             for item in data:
