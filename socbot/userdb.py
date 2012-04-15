@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from twisted.words.protocols.irc import parseModes
 
 import hashlib, collections, datetime
-import json
+import json, re
 
 prefixes = "~&@%+"
 
@@ -49,7 +49,7 @@ class MutableList(Mutable, list):
 
 class UnregisteredUser(object):
     def __init__(self, *args, **kwargs):
-        self.nick = "Unregistered"
+        self.username = "Unregistered"
         self.hostmasks = []
         self.perms = []
         self.passhash = ""
@@ -71,7 +71,7 @@ class UnregisteredUser(object):
         raise UserNotLoggedIn
     
     def hasHostmask(self, hostmask):
-        raise UserNotLoggedIn
+        raise False
 
 class RegisteredUser(Base):
     __tablename__ = 'users'
@@ -159,6 +159,8 @@ class RegisteredUser(Base):
     
     def hasHostmask(self, hostmask):
         return hostmask in self.hostmasks
+    
+emailpat = re.compile(r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?", re.IGNORECASE)
 
 class UserChannel(object):
     def __init__(self):
@@ -179,6 +181,9 @@ class User(object):
         return isinstance(self.registration, RegisteredUser)
         
     def register(self, username, password, email):
+        if not emailpat.match(email):
+            raise BadEmail, email
+        
         username = username.lower()
         exists = self.db.session.query(RegisteredUser).filter_by(username=username)
 
@@ -192,17 +197,8 @@ class User(object):
         
         return user
     
-    def getRegistration(self, username):
-        exists = self.db.session.query(RegisteredUser).filter_by(username=username)
-
-        if exists.count():
-            reg = exists.first()
-            return reg
-        
-        raise NoSuchUser, username
-    
     def loginPassword(self, username, password):
-        user = self.getRegistration(username)
+        user = self.db.getRegistration(username)
             
         if hashlib.sha1(password).hexdigest() == user.passhash:
             self.registration = user
@@ -211,7 +207,7 @@ class User(object):
         raise BadPass, username
         
     def loginHostmask(self, hostmask):
-        user = self.getRegistration(self.nick)
+        user = self.db.getRegistration(self.nick)
             
         if hostmask.lower() in user.hostmasks:
             self.registration = user
@@ -239,32 +235,34 @@ class User(object):
         
     def addPerm(self, node):
         self.registration.addPerm(node)
+        self.db.saveSession()
             
-    def remPerm(self, node):
+    def remPerm(self, node, username=None):
         self.registration.remPerm(node)
+        self.db.saveSession()
             
-    def hasPerm(self, node, default=False):
+    def hasPerm(self, node, default=False, username=None):
         return self.registration.hasPerm(node, default)
-        
-    def addHostmask(self, hostmask):
-        success = self.registration.addHostmask(hostmask)
-        
-        if success:
-            self.db.saveSession()
+    
+    def username(self):
+        if self.isLoggedIn():
+            username = self.registration.username
+        else:
+            username = self.nick
             
-        return success
+        return username.lower()
+        
+    def addHostmask(self, hostmask, username=None):
+        self.registration.addHostmask(hostmask)
+        self.db.saveSession()
             
     def remHostmask(self, hostmask):
-        success = self.registration.remHostmask(hostmask)
-        
-        if success:
-            self.db.saveSession()
-            
-        return success
+        self.registration.remHostmask(hostmask)
+        self.db.saveSession()
     
     def hasHostmask(self, hostmask):
         return self.registration.hasHostmask(hostmask)
-            
+    
     def nickChanged(self, bot, tonick):
         self.db.nickChanged(bot, self.nick, tonick)
             
@@ -310,6 +308,17 @@ class UserDB(object):
         
     def saveSession(self):
         self.session.commit()
+        
+    def getRegistration(self, username):
+        username = username.lower()
+            
+        exists = self.session.query(RegisteredUser).filter_by(username=username)
+
+        if exists.count():
+            reg = exists.first()
+            return reg
+        
+        raise NoSuchUser, username
         
     def getUser(self, nick):
         nick = nick.lower()

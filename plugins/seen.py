@@ -179,7 +179,7 @@ class Plugin(Base):
         
         channel = channel.lower()
         
-        if not channel in bot.channels:
+        if not channel in bot.connection.channels:
             return "I am not in {0}".format(channel)
         
         count = match.group('count')

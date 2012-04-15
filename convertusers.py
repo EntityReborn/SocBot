@@ -2,38 +2,40 @@ from socbot.config import ConfigObj
 from socbot.tools import validateConfig
 from socbot.userdb import UserDB
 
-users = ConfigObj('conf/users.conf', configspec='conf/users.spec', unrepr=True)
+if __name__ == "__main__":
 
-invalid = validateConfig(users)
-
-if invalid:
-    log.error('\n'.join(invalid))
-    exit(1)
-
-db = UserDB('conf/users.db')
-
-for nick, config in users['users'].iteritems():
-    print "Found user %s" % nick
-    user = db.getUser(nick)
+    users = ConfigObj('conf/users.conf', configspec='conf/users.spec', unrepr=True)
     
-    try:
-        user.register(nick, config['passhash'], config['email'])
-        print "Registered to DB."
-    except Exception:
-        print "User was already registered!"
+    invalid = validateConfig(users)
     
-    reg = user.getRegistration(nick)
+    if invalid:
+        log.error('\n'.join(invalid))
+        exit(1)
     
-    for perm in config['permissions']:
-        reg.addPerm(perm)
-        print "Added %s perm." % perm
+    db = UserDB('conf/users.db')
+    
+    for nick, config in users['users'].iteritems():
+        print "Found user %s" % nick
+        user = db.getUser(nick)
         
-    for mask in config['hostmasks']:
-        reg.addHostmask(mask)
-        print "Added %s hostmask." % mask
+        try:
+            user.register(nick, config['passhash'], config['email'])
+            print "Registered to DB."
+        except Exception:
+            print "User was already registered!"
         
-    print "-----"
+        reg = user.getRegistration(nick)
         
-db.saveSession()
-        
-print "New db saved as conf/users.db."
+        for perm in config['permissions']:
+            reg.addPerm(perm)
+            print "Added %s perm." % perm
+            
+        for mask in config['hostmasks']:
+            reg.addHostmask(mask)
+            print "Added %s hostmask." % mask
+            
+        print "-----"
+            
+    db.saveSession()
+            
+    print "New db saved as conf/users.db."

@@ -24,12 +24,12 @@ class Plugin(Base):
         if modes[0] not in '-+':
             modes = '+' + modes
 
-        if channel == bot.nickname:
+        if channel == bot.connection.nickname:
             # This is a mode change to our individual user, not a channel mode
             # that involves us.
-            paramModes = bot.getUserModeParams()
+            paramModes = bot.connection.getUserModeParams()
         else:
-            paramModes = bot.getChannelModeParams()
+            paramModes = bot.connection.getChannelModeParams()
 
         added, removed = parseModes(modes, args, paramModes)
 
@@ -74,7 +74,7 @@ class Plugin(Base):
         nick, host = prefix.split('!')
         channel = params[-1]
 
-        if nick == bot.nickname:
+        if nick == bot.connection.nickname:
             bot.sendLine('WHO %s'%channel)
 
     def print_user(self, usr):

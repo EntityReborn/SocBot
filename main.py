@@ -22,7 +22,7 @@ class main(object):
             self.sstate = {}
 
         self.sstate["exitcode"] = 0
-        self.sstate["bots"] = defaultdict(list)
+        self.sstate["connections"] = defaultdict(list)
 
         if not os.path.isdir(curdir):
             curdir = os.path.dirname(curdir)
@@ -99,7 +99,7 @@ class main(object):
             log.error("Nothing to connect to!\nCheck your socbot.conf file!")
 
     def shutdown(self, msg="Shutdown requested."):
-        for bots in self.sstate["bots"].values(): # [bot, bot, bot, ...]
+        for bots in self.sstate["connections"].values(): # [bot, bot, bot, ...]
             for inst in bots:
                 inst.quit(msg)
 
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     def handle_signal(signum, stackframe):
         if signum == signal.SIGINT or \
         signum == signal.SIGTERM:
-            for name, bots in sstate["bots"].iteritems():
+            for name, bots in sstate["connections"].iteritems():
                 for bot in bots:
                     bot.quit("CTRL-C")
 

@@ -15,10 +15,12 @@ class NoSuchPlugin(Exception): pass
 class PluginAlreadyLoaded(Exception): pass
 class PluginNotLoaded(Exception): pass
 
+class UnregisterEvent(object): pass
+
 class PluginTracker(object):
     def __init__(self, core, info, filename):
         self.core = core
-        self.events = {}
+        self.events = defaultdict(list)
         self.triggers = {}
         self.info = info
         self.filename = filename
@@ -26,10 +28,10 @@ class PluginTracker(object):
         self._env = {}
         
     def hasTrigger(self, trig):
-        return trig.upper() in self.triggers.keys()
+        return trig.upper() in self.triggers.keys() and self.triggers[trig.upper()]
     
     def hasEvent(self, event):
-        return event.upper() in self.events.keys()
+        return event.upper() in self.events.keys() and self.events[event.upper()]
     
     def getTrigger(self, trig):
         trig = trig.upper()
@@ -53,7 +55,10 @@ class PluginTracker(object):
         event = event.upper()
         
         if event in self.events.keys():
-            self.events[event](*args)
+            funcs = self.events[event]
+            
+            for func in funcs:
+                func(*args)
             
     def initialize(self):
         if self.isLoaded():
@@ -115,14 +120,17 @@ class PluginTracker(object):
             log.exception("Exception unloading plugin %s" % self.filename)
 
         self.triggers = {}
-        self.events = {}
+        self.events = defaultdict(list)
         
         del self._env
         del self._instance
         
     def reload(self):
+        self.preReload()
         self.unload()
         self.load()
+        self.initialize()
+        self.postReload()
         
     def registerTrigger(self, pluginname, func, *triggers):
         triggerline = ", ".join(triggers)
@@ -138,26 +146,25 @@ class PluginTracker(object):
             func.__name__, eventline))
 
         for event in events:
-            self.events[event.upper()] = func
+            self.events[event.upper()].append(func)
 
-    def removeTrigger(self, plugname, func, *triggers):
+    def removeTrigger(self, func, *triggers):
         triggerline = ", ".join(triggers)
         log.debug("removing '{0}' for triggers '{1}'".format(
             func.__name__, triggerline))
 
         for trig in triggers:
-            for data in self.triggers[trig.upper()]:
-                if data == func:
-                    self.triggers[trig.upper()].remove(data)
+            if self.triggers[trig.upper()] == func:
+                del self.triggers[trig.upper()]
 
-    def removeEvent(self, plugname, func, *events):
+    def removeEvent(self, func, *events):
         eventline = ", ".join(events)
         log.debug("removing '{0}' for events '{1}'".format(
             func.__name__, eventline))
 
         for event in events:
-            if func in self.triggers[event.upper()]:
-                self.triggers[event.upper()].remove(func)
+            if func in self.events[event.upper()]:
+                self.events[event.upper()].remove(func)
 
 class PluginCore(object):
     """A class in charge of managing the lifetime of a plugin"""
@@ -165,7 +172,6 @@ class PluginCore(object):
         self.sstate = sstate
         self.moduledir = os.path.abspath(moduledir)
         self.plugintrackers = {}
-        self._event_blocked = False
 
         log.debug("PluginManager instantiated with '{0}' for "
             "moduledir.".format(self.moduledir))
@@ -189,16 +195,18 @@ class PluginCore(object):
     def triggerEvent(self, event, *args):
         log.debug("triggering '{0}'".format(event))
         self._event_blocked = False
+        hadevent = False
 
         for tracker in self.plugintrackers.values():
             if tracker.hasEvent(event):
+                hadevent = True
+                
                 try:
                     tracker.fireEvent(event, *args)
                 except Exception:
                     log.exception("exception firing %s in %s" % (event, tracker.filename))
-                    
-                if self._event_blocked:
-                    break
+                
+        return hadevent
 
     def reloadPlugin(self, name):
         name = name.lower()
@@ -307,7 +315,8 @@ class PluginCore(object):
         if not self.moduledir in sys.path:
             sys.path.append(self.moduledir)
 
-        self.plugintrackers = self._findPlugins()
+        if not self.plugintrackers:
+            self.plugintrackers = self.findPlugins()
         
         for name, tracker in self.plugintrackers.iteritems():
             try:
@@ -322,7 +331,7 @@ class PluginCore(object):
             except Exception:
                 log.exception("exception loading plugin %s"%tracker.filename)
 
-    def _findPlugins(self):
+    def findPlugins(self):
         # Find modules using premade .info descriptor files.
         filelist = os.listdir(self.moduledir)
         plugindata = {}
