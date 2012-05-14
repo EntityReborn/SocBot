@@ -118,12 +118,9 @@ class API(object):
         
         result = None
         func = self.plugins.getTrigger(trigger)
-        
-        
             
         if func:
             self.log.debug("trigger: {0}".format(trigger))
-            result = func(self, usr, details)
             
             try:
                 result = func(self, usr, details)
