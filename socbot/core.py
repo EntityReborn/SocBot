@@ -146,7 +146,7 @@ class BotFactory(protocol.ReconnectingClientFactory):
         self.core = main
         self.config = config
         self.shuttingdown = False
-        self.users = UserDB('conf/%s-users.db' % name)
+        self.users = UserDB('conf/%s-users.db' % name.lower())
 
     def clientConnectionLost(self, connector, unused_reason):
         self.log.info("connection lost")
