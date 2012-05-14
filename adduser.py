@@ -40,7 +40,7 @@ else:
         if password == passconf:
             break
     
-    print "Unmatched passwords, try again."
+        print "Unmatched passwords, try again."
     
     # Get email
     email = getInput("User's email")
