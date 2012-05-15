@@ -7,7 +7,7 @@ class Plugin(Base):
     @Base.trigger("PING")
     def on_ping(self, bot, user, details):
         """PING - Ask the bot to respond with 'Pong'"""
-        return "Pong!!!"
+        return "Pong"
     
     @Base.trigger("RESTART")
     def on_restart(self, bot, user, details):
@@ -87,7 +87,7 @@ class Plugin(Base):
                 message = None
         else:
             chan = details['channel']
-            message = "Bye!"
+            message = "Good-bye."
         
         if chan.lower() != bot.connection.nickname.lower():
             bot.leave(chan, message)

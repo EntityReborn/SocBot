@@ -39,7 +39,7 @@ class Plugin(Base): # Must subclass Base
             
         return '%s: %s' % (details['splitmsg'][0], str(response))
     
-    @Base.trigger("ADDFACT", "+F")
+    @Base.trigger("ADDFACT", "?+")
     def on_define(self, bot, user, details):
         """ADDFACT <id> <message> - define a factoid"""
         
@@ -53,7 +53,7 @@ class Plugin(Base): # Must subclass Base
             
         return "Factoid set."
 
-    @Base.trigger("REMFACT", "-F")
+    @Base.trigger("REMFACT", "?-")
     def on_remove(self, bot, user, details):
         """REMFACT <id> - remove a factoid"""
         

@@ -10,6 +10,12 @@ class API(object):
         self.users = users
         self.plugins = plugins
         
+    def quit(self, message="Good-bye."):
+        self.connection.quit(message)
+        
+    def restart(self, message="Restarting..."):
+        self.connection.restart(message)
+        
     def join(self, channel, key=None):
         channel = channel.lower()
         config = self.serverConfig()
@@ -24,7 +30,7 @@ class API(object):
 
         self.connection.join(channel, key)
 
-    def leave(self, channel, msg):
+    def leave(self, channel, msg="Good-bye."):
         channel = channel.lower()
         config = self.serverConfig()
 

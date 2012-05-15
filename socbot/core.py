@@ -156,7 +156,10 @@ class BotFactory(protocol.ReconnectingClientFactory):
                 self, connector, unused_reason)
 
         if not self.sharedstate["connections"]:
-            reactor.stop()
+            try:
+                reactor.stop()
+            except twisted.internet.error.ReactorNotRunning:
+                pass
 
     def buildProtocol(self, addr):
         self.log.debug("creating new connection")
