@@ -120,7 +120,7 @@ class Connection(irc.IRCClient):
         self.factory.shutdown()
         
     def restart(self, message="Restarting..."):
-        self.factory.sstate['exitcode'] = 3
+        self.factory.sharedstate['exitcode'] = 3
         self.factory.shutdownAll(message)
 
     def joined(self, channel):
