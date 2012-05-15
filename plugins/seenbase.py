@@ -1,6 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, create_engine
 from sqlalchemy.orm import sessionmaker
+from  sqlalchemy.exc import InvalidRequestError
 
 import datetime
 
@@ -105,7 +106,11 @@ class SeenManager(object):
         tell = Tell(target, sender, channel, datetime.datetime.now(), text)
         self.session.add(tell)
 
-        self.session.commit()
+        try:
+            self.session.commit()
+        except InvalidRequestError, e:
+            self.session.rollback()
+            
         return tell
     
     def getTells(self, target):
@@ -126,4 +131,7 @@ class SeenManager(object):
         for item in exists.all():
             self.session.delete(item)
             
-        self.session.commit()
+        try:
+            self.session.commit()
+        except InvalidRequestError, e:
+            self.session.rollback()

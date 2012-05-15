@@ -2,6 +2,7 @@ import logging
 
 from twisted.words.protocols import irc
 from twisted.internet import protocol, reactor
+from twisted.internet.error import ReactorNotRunning
 
 from socbot.pluginapi import API
 from socbot.userdb import UserDB
@@ -158,7 +159,7 @@ class BotFactory(protocol.ReconnectingClientFactory):
         if not self.sharedstate["connections"]:
             try:
                 reactor.stop()
-            except twisted.internet.error.ReactorNotRunning:
+            except ReactorNotRunning:
                 pass
 
     def buildProtocol(self, addr):
