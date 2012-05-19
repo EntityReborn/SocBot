@@ -27,7 +27,10 @@ class Plugin(Base):
         if not "output" in result:
             return "Error: %s (%s)" % (result['stderr'].splitlines()[-1], result['link'])
         
-        return "%s (%s)" % (result['output'].splitlines()[0], result['link'])
+        try:
+            return "%s (%s)" % (result['output'].splitlines()[0], result['link'])
+        except IndexError:
+            return "No output. (%s)" % result['link']
     
     @Base.trigger("OBJC")
     def on_objc(self, bot, user, details):
