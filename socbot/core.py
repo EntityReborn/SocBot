@@ -93,7 +93,7 @@ class Connection(irc.IRCClient):
         self.log.info("lost connection: {0}".format(reason))
 
         irc.IRCClient.connectionLost(self, reason)
-
+        
         if self.shutdown:
             self.factory.removeBot(self)
     

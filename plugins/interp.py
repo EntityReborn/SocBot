@@ -7,6 +7,11 @@ from socbot.pluginbase import Base
 class Plugin(Base):
     @Base.trigger("PY", "PYTHON")
     def on_python(self, bot, user, details):
+        """PY <code> - run arbitrary python code (in an offsite sandboxed process)"""
+        
+        if not details['splitmsg']):
+            raise BadParams
+        
         code = " ".join(details['splitmsg'])
         
         try:

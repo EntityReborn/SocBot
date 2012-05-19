@@ -81,8 +81,14 @@ pattern = re.compile(r"^(?P<nick>[^ ]+)(?:\s+(?P<channel>#[^ ]+))?(?:\s+(?P<coun
 
 class Plugin(Base):
     def initialize(self, *args, **kwargs):
-        self.seenmanager = seenbase.SeenManager("conf/seen.db")
-
+        self.seenmanagers = {}
+        
+    def seenManager(self, bot):
+        if not bot.name().lower() in self.seenmanagers:
+            self.seenmanagers[bot.name().lower()] = seenbase.SeenManager("conf/%s-seen.db" % bot.name().lower())
+        
+        return self.seenmanagers[bot.name().lower()]
+    
     @Base.event("NICK", "PRIVMSG", "JOIN", "PART", "QUIT")
     def on_updateseen(self, bot, command, prefix, params):
         nick = prefix.split("!")[0].lower()
@@ -93,13 +99,15 @@ class Plugin(Base):
             msg = ""
 
         channel = params[0]
-        self.seenmanager.addSeen(nick, channel, command, msg)
+        self.seenManager(bot).addSeen(nick, channel, command, msg)
         
         if command == 'PRIVMSG':
             self.checkTell(bot, nick)
         
     def checkTell(self, bot, nick):
-        tells = self.seenmanager.getTells(nick)
+        manager = self.seenManager(bot)
+        tells = manager.getTells(nick)
+        
         tosend = []
         
         for tell in tells:
@@ -118,7 +126,7 @@ class Plugin(Base):
                 url = pastie.pastie("\n".join(tosend))
                 bot.msg(nick, "Please check out %s for a list of things people wanted to tell you." % url)
                 
-            self.seenmanager.clearTells(nick)
+            manager.clearTells(nick)
                 
     def seenLine(self, data):
         if not data:
@@ -154,7 +162,7 @@ class Plugin(Base):
         if len(parts) >= 2:
             nick = parts[0].lower()
             
-            self.seenmanager.addTell(nick, user.nick, channel, " ".join(parts[1::]))
+            self.seenManager(bot).addTell(nick, user.nick, channel, " ".join(parts[1::]))
             
             return "I'll let them know!"
         
@@ -183,12 +191,13 @@ class Plugin(Base):
             return "I am not in {0}".format(channel)
         
         count = match.group('count')
+        manager = self.seenManager(bot)
         
         if not count:
-            data = self.seenmanager.getLastSeen(nick, channel)
+            data = manager.getLastSeen(nick, channel)
             return self.seenLine(data)
         else:
-            data = self.seenmanager.getRangedSeen(nick, channel, int(count))
+            data = manager.getRangedSeen(nick, channel, int(count))
             tosend = []
                 
             for item in data:

@@ -3,12 +3,18 @@ from infobase import FactoidManager, NoSuchFactoid, FactoidAlreadyExists
 
 class Plugin(Base): # Must subclass Base
     def initialize(self, *args, **kwargs):
-        self.manager = FactoidManager('factoids.sqlite')
+        self.factmanagers = {}
+        
+    def factManager(self, bot):
+        if not bot.name().lower() in self.factmanagers:
+            self.factmanagers[bot.name().lower()] = FactoidManager("conf/%s-factoids.db" % bot.name().lower())
+        
+        return self.factmanagers[bot.name().lower()]
     
     @Base.event("TRIG_UNKNOWN")
     def on_unknown(self, bot, user, details):
         try:
-            response = self.manager.getFact(details['trigger'])
+            response = self.factManager(bot).getFact(details['trigger'])
             bot.msg(details['channel'], response)
         except NoSuchFactoid, e:
             pass
@@ -20,7 +26,7 @@ class Plugin(Base): # Must subclass Base
             raise BadParams
         
         try:
-            response = self.manager.getFact(details['splitmsg'][0])
+            response = self.factManager(bot).getFact(details['splitmsg'][0])
         except NoSuchFactoid, e:
             response = "No such factoid!"
             
@@ -33,7 +39,7 @@ class Plugin(Base): # Must subclass Base
             raise BadParams
         
         try:
-            response = self.manager.getFact(details['splitmsg'][1])
+            response = self.factManager(bot).getFact(details['splitmsg'][1])
         except NoSuchFactoid, e:
             response = "No such factoid!"
             
@@ -49,7 +55,7 @@ class Plugin(Base): # Must subclass Base
         if len(details['splitmsg']) < 2:
             raise BadParams
         
-        self.manager.addFact(details['splitmsg'][0], ' '.join(details['splitmsg'][1::]), True)
+        self.factManager(bot).addFact(details['splitmsg'][0], ' '.join(details['splitmsg'][1::]), True)
             
         return "Factoid set."
 
@@ -63,6 +69,6 @@ class Plugin(Base): # Must subclass Base
         if len(details['splitmsg']) < 1:
             raise BadParams
         
-        self.manager.remFact(details['splitmsg'][0])
+        self.factManager(bot).remFact(details['splitmsg'][0])
             
         return "Factoid removed."
