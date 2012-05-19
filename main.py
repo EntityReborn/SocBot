@@ -103,7 +103,7 @@ class main(object):
             for inst in connections:
                 inst.quit(msg)
                 
-            reactor.stop()
+            #reactor.stop()
 
 if __name__ == "__main__":
     import argparse, signal
