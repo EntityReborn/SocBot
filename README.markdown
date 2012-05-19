@@ -6,12 +6,17 @@ designed to be for the ##socialites community of [Freenode][fnirc].
 
 # Dependancies #
 
-* [Python 2.6-2.7][python]
-* [Twisted 11+][twist] - Internet engine behind the bot (will need python-dev if installing from setuptools)
-* [Zope.Interface][zope] - Required for Twisted
-* [ConfigObj][confobj] (and it's validate.py as well) - Provide an easy API for configs
-* [PyWin32][pywin] - If running on windows
-* [Argparse][pyargparse] - Helpful for parsing commandline stuff.
+* Core
+    * [Python 2.6-2.7][python]
+    * [Twisted 11+][twist] - Internet engine behind the bot (will need python-dev if installing from setuptools)
+    * [Zope.Interface][zope] - Required for Twisted.
+    * [ConfigObj][confobj] (and it's validate.py as well) - Provide an easy API for configs.
+    * [PyWin32][pywin] - If running on windows.
+    * [Argparse][pyargparse] - Helpful for parsing commandline stuff.
+    * [SQLAlchemy][sqla] - Database management.
+
+* Plugins
+    * [Requests][requests] - HTTP requests library
 
 # Credits #
 
@@ -33,3 +38,5 @@ See LICENSE or [this page][license].
 [fnirc]: irc://irc.freenode.net "FreeNode.net IRC community"
 [pywin]: http://sourceforge.net/projects/pywin32 "PyWin32"
 [pyargparse]: http://pypi.python.org/pypi/argparse "ArgParse on pypi"
+[requests]: http://docs.python-requests.org/en/latest/index.html "Python Requests"
+[sqla]: http://sqlalchemy.org "SQLAlchemy"

@@ -1,50 +1,24 @@
 import urllib2, urllib, json
 
+import requests
+
 from socbot.pluginbase import Base
 
 class Plugin(Base):
-    def getOutput(self, code, lang="python"):
-        data = urllib.urlencode({
-            'code': code,
-            'lang': lang
-        })
-        
-        resp = urllib2.urlopen("http://run-this.appspot.com/runthis", data)
-        result = resp.read()
-        data = json.loads(result)
-            
-        return data
-    
     @Base.trigger("PY", "PYTHON")
     def on_python(self, bot, user, details):
         code = " ".join(details['splitmsg'])
         
         try:
-            result = self.getOutput(code, 'python')
+            result = requests.get("http://eval.appspot.com/eval", params=dict(statement=code, nick=user.nick)).content
         except Exception, e:
             return "Error querying the sandbox: %s" % e
         
-        if not "output" in result:
-            return "Error: %s (%s)" % (result['stderr'].splitlines()[-1], result['link'])
+        if result.startswith("Traceback (most recent call last):") and \
+        len(result.splitlines()) > 1:
+            return result.splitlines()[-1]
         
-        try:
-            return "%s (%s)" % (result['output'].splitlines()[0], result['link'])
-        except IndexError:
-            return "No output. (%s)" % result['link']
-    
-    @Base.trigger("OBJC")
-    def on_objc(self, bot, user, details):
-        code = " ".join(details['splitmsg'])
+        if result:
+            return "%s" % result
         
-        try:
-            result = self.getOutput(code, 'objc')
-        except Exception, e:
-            return "Error querying the sandbox: %s" % e
-        
-        if not "output" in result:
-            return "Error: %s (%s)" % (result['stderr'].splitlines()[-1], result['link'])
-        
-        return "%s (%s)" % (result['output'].splitlines()[0], result['link'])
-    
-
-    
+        return "No output."
