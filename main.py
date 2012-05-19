@@ -99,9 +99,11 @@ class main(object):
             log.error("Nothing to connect to!\nCheck your socbot.conf file!")
 
     def shutdown(self, msg="Shutdown requested."):
-        for bots in self.sstate["connections"].values(): # [bot, bot, bot, ...]
-            for inst in bots:
+        for connections in self.sstate["connections"].values(): # [bot, bot, bot, ...]
+            for inst in connections:
                 inst.quit(msg)
+                
+            reactor.stop()
 
 if __name__ == "__main__":
     import argparse, signal

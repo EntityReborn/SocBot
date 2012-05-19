@@ -144,21 +144,21 @@ class RegisteredUser(Base):
         return default # Undefined
     
     def addHostmask(self, hostmask):
-        if not hostmask in self.hostmasks:
-            self.hostmasks.append(hostmask)
+        if not hostmask.lower() in self.hostmasks:
+            self.hostmasks.append(hostmask.lower())
             return True
         
         return False
             
     def remHostmask(self, hostmask):
-        if hostmask in self.hostmasks:
-            self.hostmasks.remove(hostmask)
+        if hostmask.lower() in self.hostmasks:
+            self.hostmasks.remove(hostmask.lower())
             return True
         
         return False
     
     def hasHostmask(self, hostmask):
-        return hostmask in self.hostmasks
+        return hostmask.lower() in self.hostmasks.lower()
     
 emailpat = re.compile(r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?", re.IGNORECASE)
 
@@ -208,7 +208,7 @@ class User(object):
         
     def loginHostmask(self, hostmask):
         user = self.db.getRegistration(self.nick)
-            
+
         if hostmask.lower() in user.hostmasks:
             self.registration = user
             return True

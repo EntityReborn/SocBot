@@ -183,7 +183,10 @@ class BotFactory(protocol.ReconnectingClientFactory):
             del self.sharedstate["connections"][self.name]
             
         if not self.sharedstate["connections"]:
-            reactor.stop()
+            try:
+                reactor.stop()
+            except ReactorNotRunning:
+                pass
 
     def shutdownAll(self, msg="Shutdown requested."):
         self.core.shutdown(msg)
