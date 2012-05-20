@@ -11,12 +11,15 @@ class Plugin(Base):
     
     @Base.trigger("RESTART")
     def on_restart(self, bot, user, details):
-        """RESTART - Ask the bot to restart"""
+        """RESTART [message] - Ask the bot to restart"""
         
         if not user.hasPerm('general.restart'):
             raise InsuffPerms, "general.restart"
         
-        bot.restart()
+        if details['splitmsg']:
+            bot.restart(' '.join(details['splitmsg']))
+        else:
+            bot.restart()
         
     @Base.trigger("SHUTDOWN", "DIAF")
     def on_shutdown(self, bot, user, details):
@@ -25,8 +28,8 @@ class Plugin(Base):
         if not user.hasPerm('general.shutdown'):
             raise InsuffPerms, "general.shutdown"
         
-        if details['fullmsg']:
-            bot.quit(details['fullmsg'])
+        if details['splitmsg']:
+            bot.quit(' '.join(details['splitmsg']))
         else:
             bot.quit()
     

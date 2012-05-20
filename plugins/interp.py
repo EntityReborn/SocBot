@@ -9,7 +9,7 @@ class Plugin(Base):
     def on_python(self, bot, user, details):
         """PY <code> - run arbitrary python code (in an offsite sandboxed process)"""
         
-        if not details['splitmsg']):
+        if not details['splitmsg']:
             raise BadParams
         
         code = " ".join(details['splitmsg'])
