@@ -104,20 +104,22 @@ class API(object):
         if channel.lower() != self.connection.nickname.lower():
             if match and self.generalConfig()['nicktrigger'].lower() == 'true':
                 msg = match.group(1)
-            elif msg[0] in self.generalConfig()['commandchars']:
-                msg = msg[1:]
-            else:
+            elif msg[0] not in self.generalConfig()['commandchars']:
                 return
         else:
             wasprivate = True
             channel = user.split("!")[0]
-        
+            
+        if msg[0] in self.generalConfig()['commandchars']:
+            msg = msg[1:]
+                
         split = msg.split()
         
         if not split:
             return
         
         trigger = split[0].upper()
+        
         usr = self.users.getUser(nick.lower())
         splitmsg = msg.split()
         
