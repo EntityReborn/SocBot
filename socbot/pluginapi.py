@@ -111,8 +111,13 @@ class API(object):
         else:
             wasprivate = True
             channel = user.split("!")[0]
-
-        trigger = msg.split()[0].upper()
+        
+        split = msg.split()
+        
+        if not split:
+            return
+        
+        trigger = split[0].upper()
         usr = self.users.getUser(nick.lower())
         splitmsg = msg.split()
         
