@@ -1,8 +1,32 @@
 import urllib2, urllib, json
 
-import requests
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred
+from twisted.internet.protocol import Protocol
+from twisted.web.client import Agent
 
-from socbot.pluginbase import Base
+from socbot.pluginbase import InsuffPerms, BadParams, Base
+
+class DeferredPrinter(Protocol):
+    def __init__(self, finished):
+        self.finished = finished
+        self.data = ""
+
+    def dataReceived(self, bytes):
+        self.data += bytes
+
+    def connectionLost(self, reason):
+        if len(self.data) > 250:
+            self.data = self.data[:247] + "..."
+            
+        if not self.data:
+            self.data = "No output."
+            
+        if self.data.startswith("Traceback (most recent call last):") and \
+        len(self.data.splitlines()) > 1:
+            self.data = self.data.splitlines()[-1]
+            
+        self.finished.callback(self.data)
 
 class Plugin(Base):
     @Base.trigger("PY", "PYTHON")
@@ -13,17 +37,23 @@ class Plugin(Base):
             raise BadParams
         
         code = " ".join(details['splitmsg'])
+        data = urllib.urlencode({'statement':code})
         
         try:
-            result = requests.get("http://eval.appspot.com/eval", params=dict(statement=code, nick=user.nick)).content
+            agent = Agent(reactor)
+
+            d = agent.request(
+                'GET',
+                'http://eval.appspot.com/eval?%s'%data
+            )
+            
+            def cbRequest(response):
+                finished = Deferred()
+                response.deliverBody(DeferredPrinter(finished))
+                return finished
+            
+            d.addCallback(cbRequest)
+            return d
+                
         except Exception, e:
             return "Error querying the sandbox: %s" % e
-        
-        if result.startswith("Traceback (most recent call last):") and \
-        len(result.splitlines()) > 1:
-            return result.splitlines()[-1]
-        
-        if result:
-            return "%s" % result
-        
-        return "No output."

@@ -3,6 +3,7 @@ import re
 from socbot.plugincore import MultipleTriggers
 from socbot.userdb import UnknownHostmask, NoSuchUser
 from socbot.pluginbase import InsuffPerms, BadParams
+from twisted.internet.defer import maybeDeferred
 
 class API(object):
     def __init__(self, connection, users, plugins):
@@ -129,24 +130,31 @@ class API(object):
             self.log.debug("trigger: {0}".format(trigger))
             
             try:
-                result = func(self, usr, details)
-            except InsuffPerms, perm:
-                result = "You don't have the required permission: '{0}'".format(perm)
-            except BadParams:
-                result = func.__doc__
-            except Exception as e:
-                self.log.exception("exception while triggering %s" % trigger)
-                
-                result = "Exception in plugin function {0} ({1}). ".format(func.__name__, msg) + \
-                    "Please check the logs."
+                d = maybeDeferred(func, self, usr, details)
+                d.addCallback(self.sendResult, channel)
+                d.addErrback(self.sendError, channel, func)
+            except Exception, e:
+                self.log.exception("General exception")
         else:
             self.plugins.triggerEvent("TRIG_UNKNOWN", self, usr, details)
+            
+    def sendError(self, err, target, func):
+        err.trap(InsuffPerms, BadParams, Exception)
+        if err.type == BadParams:
+            self.connection.msg(target, func.__doc__)
+        elif err.type == InsuffPerms:
+            self.connection.msg(target, "Insufficient permissions (%s). Did you forget to log in?" % err.value.args[0])
+        else:
+            self.log.error(err.getTraceback())
+            self.connection.msg(target, "Exception in plugin function {0} ({1}). ".format(func.__name__, err.getErrorMessage()) + \
+                    "Please check the logs.")
                 
-        if result:
-            if result == True:
-                result = "Done."
+    def sendResult(self, msg, target):
+        if msg:
+            if msg == True:
+                msg = "Done."
         
-            self.connection.msg(channel, str(result))
+        self.connection.msg(target, str(msg))
             
     def name(self):
         return self.connection.factory.name
