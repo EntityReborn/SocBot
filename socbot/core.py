@@ -12,7 +12,6 @@ from socbot.userdb import UserDB
 
 class Connection(irc.IRCClient):
     nickname = "SocBot"
-    sourceURL = "https://github.com/entityreborn/SocBot/"
 
     _ping_deferred = None
     _reconnect_deferred = None

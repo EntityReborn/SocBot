@@ -6,6 +6,8 @@ from socbot.pluginbase import InsuffPerms, BadParams
 from twisted.internet.defer import maybeDeferred
 
 class API(object):
+    sourceURL = "https://github.com/entityreborn/SocBot/"
+    
     def __init__(self, connection, users, plugins):
         self.connection = connection
         self.users = users
