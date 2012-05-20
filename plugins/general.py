@@ -38,14 +38,32 @@ class Plugin(Base):
         """BOTTIME - Ask the bot to respond with the time of it's computer"""
         return "The date and time is %s" % datetime.datetime.strftime(datetime.datetime.now(), '%c')
 
-    @Base.trigger("HELP", "COMMANDS")
-    def on_help(self, bot, user, details):
-        """{HELP, COMMANDS} -  Show commands known to the bot"""
+    @Base.trigger("COMMANDS")
+    def on_commands(self, bot, user, details):
+        """COMMANDS - Show commands known to the bot"""
         commands = ", ".join([x for x in self.manager.core.getAllTriggers() if x != "TRIG_UNKNOWN"])
         msg = "Commands I am aware of: {0}".format(commands)
 
         return msg
-
+    
+    @Base.trigger("HELP")
+    def on_help(self, bot, user, details):
+        """HELP [trigger] - Show help for a given trigger (See COMMANDS for valid triggers)"""
+        if not details['splitmsg']:
+            raise BadParams
+        
+        trigger = details['splitmsg'][0]
+        
+        func = self.manager.core.getTrigger(trigger)
+        
+        if not func:
+            return "No such trigger (%s)" % trigger
+        
+        if not func.__doc__:
+            return "This trigger does not have a help text associated with it."
+        
+        return func.__doc__ 
+        
     @Base.trigger("JOIN")
     def on_join(self, bot, user, details):
         """JOIN <channel> [key] - Join a channel."""
