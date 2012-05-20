@@ -1,11 +1,33 @@
 import urllib2, re
 from bs4 import BeautifulSoup
 
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred
+from twisted.internet.protocol import Protocol
+from twisted.web.client import Agent, RedirectAgent
+
+titlepattern = re.compile(r"\b(?P<pro>https?://)?(?P<url>.*?\.[-A-Z0-9+&@#/%=~_|$?!:,.]*[A-Z0-9+&@#/%=~_|$])", re.IGNORECASE)
+
 from socbot.pluginbase import Base, BadParams
-# Regex found at http://mathiasbynens.be/demo/url-regex (@diegoperini), and modified.
-patt = ur"(?P<protocol>(?:https?|ftp)://)?(?:\S+(?::\S*)?@)?(?:(?!10(?:\.\d{1,3}){3})(?!127(?:\.\d{1,3}){3})(?!169\.254(?:\.\d{1,3}){2})(?!192\.168(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:/[^\s]*)?"
-urlpattern = re.compile(ur"^%s$"%patt, re.IGNORECASE)
-titlepattern = re.compile(ur"(?P<url>%s)\w?"%patt, re.IGNORECASE)
+
+class DeferredPrinter(Protocol):
+    def __init__(self, finished, url):
+        self.finished = finished
+        self.url = url
+        self.data = ""
+
+    def dataReceived(self, bytes):
+        self.data += bytes
+
+    def connectionLost(self, reason):
+        title = BeautifulSoup(self.data).title
+        
+        if title:
+            title = title.string
+        else:
+            title = "No title provided."
+            
+        self.finished.callback("%s (%s)" % (title.strip(), self.url))
 
 class Plugin(Base):
     def initialize(self):
@@ -23,10 +45,12 @@ class Plugin(Base):
         
         if match:
             url = match.group('url')
-            pro = match.group('protocol')
+            pro = match.group('pro')
             
             if not pro:
                 url = "http://" + url
+            else:
+                url = pro + url
                 
             if not bot in self.bots:
                 self.bots[bot] = {}
@@ -45,46 +69,53 @@ class Plugin(Base):
             url = self.bots[bot][details['channel'].lower()]
         else:
             url = details['splitmsg'][0]
-            match = urlpattern.match(url)
+            match = titlepattern.match(url)
             
             if not match:
                 return "Oops, try a valid url!"
             
-            pro = match.group('protocol')
+            pro = match.group('pro')
             if not pro:
                 url = "http://" + url
 
         try:
-            page = urllib2.urlopen(url)
-            page = page.read()
+            agent = RedirectAgent(Agent(reactor))
+            d = agent.request('GET', url)
+            
+            def cbRequest(response):
+                finished = Deferred()
+                response.deliverBody(DeferredPrinter(finished, url))
+                return finished
+            
+            d.addCallback(cbRequest)
+            return d
+        
         except urllib2.HTTPError as e:
             return "Looks like that page has an error on it! (%s: %i)" % (url, e.code)
         except urllib2.URLError, e:
             return "There was an error retrieving the page's data. (%s: %s)" % (url, e)
         
-        title = BeautifulSoup(page).title.string
-        
-        return "%s (%s)" % (title, url)
-        
-    @Base.trigger("UP", "DOWN")
+    @Base.trigger("UP", "DOWN", "ISUP", "ISDOWN")
     def on_up(self, bot, user, details):
         if len(details['splitmsg']):
             url = details['splitmsg'][0]
             
-            match = urlpattern.match(url)
+            match = titlepattern.match(url)
             
             if not match:
                 return "Oops, try a valid url!"
             
-            pro = match.group('protocol')
+            pro = match.group('pro')
+            
             if not pro:
                 url = "http://" + url
+            else:
+                url = pro + url
             
-            try:
-                _ = urllib2.urlopen(url, timeout=5)
-            except urllib2.HTTPError as e:
-                return "She's alive, but thats a %i! (%s)" % (e.code, url)
-            except urllib2.URLError, e:
-                return "She's dead, Jim! (%s)" % url
+            d = agent = Agent(reactor)
+            d = agent.request('GET', url)
             
-            return "Looks like she's alive! (%s)" % url
+            d.addCallback(lambda *x: "She's alive! (%s)" % url)
+            d.addErrback(lambda *x: "She's dead, Jim. :( (%s)" % url)
+            
+            return d
