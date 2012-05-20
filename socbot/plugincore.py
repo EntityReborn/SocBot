@@ -175,7 +175,15 @@ class PluginCore(object):
 
         log.debug("PluginManager instantiated with '{0}' for "
             "moduledir.".format(self.moduledir))
-
+        
+    def getAllTriggers(self):
+        trigs = list()
+        
+        for tracker in self.plugintrackers.values():
+            trigs += tracker.triggers.keys()
+            
+        return set(trigs)
+                
     def getTrigger(self, trigger):
         log.debug("triggering '{0}'".format(trigger))
 

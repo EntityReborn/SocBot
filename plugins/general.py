@@ -41,7 +41,7 @@ class Plugin(Base):
     @Base.trigger("HELP", "COMMANDS")
     def on_help(self, bot, user, details):
         """{HELP, COMMANDS} -  Show commands known to the bot"""
-        commands = ", ".join([x for x in self.manager.triggers.keys() if x != "TRIG_UNKNOWN"])
+        commands = ", ".join([x for x in self.manager.core.getAllTriggers() if x != "TRIG_UNKNOWN"])
         msg = "Commands I am aware of: {0}".format(commands)
 
         return msg
