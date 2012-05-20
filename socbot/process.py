@@ -85,4 +85,7 @@ def setupsingleinstance(pidfile):
         return False
     
 def _finishsingleinstance(pidfile):
-    os.unlink(pidfile)
+    try:
+        os.unlink(pidfile)
+    except Exception:
+        pass
