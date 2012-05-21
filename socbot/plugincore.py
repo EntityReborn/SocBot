@@ -14,8 +14,8 @@ class MultipleTriggers(Exception): pass
 class NoSuchPlugin(Exception): pass
 class PluginAlreadyLoaded(Exception): pass
 class PluginNotLoaded(Exception): pass
-
-class UnregisterEvent(object): pass
+class UnregisterEvent(Exception): pass
+class UnregisterTrigger(Exception): pass
 
 class PluginTracker(object):
     def __init__(self, core, info, filename):
@@ -49,7 +49,12 @@ class PluginTracker(object):
         trig = trig.upper()
         
         if trig in self.triggers.keys():
-            self.triggers[trig](*args)
+            func = self.triggers[trig]
+            
+            try:
+                func(*args)
+            except UnregisterTrigger:
+                self.removeTrigger(func, trig)
             
     def fireEvent(self, event, *args):
         event = event.upper()
@@ -58,7 +63,10 @@ class PluginTracker(object):
             funcs = self.events[event]
             
             for func in funcs:
-                func(*args)
+                try:
+                    func(*args)
+                except UnregisterEvent:
+                    self.removeEvent(func, event)
             
     def initialize(self):
         if self.isLoaded():

@@ -18,7 +18,7 @@ class Plugin(Base):
                 except KeyError:
                     pass
                 
-                return UnregisterEvent()
+                raise UnregisterEvent
     
     @Base.trigger("NICKSERVSET")
     def on_nsset(self, bot, user, details):
