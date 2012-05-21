@@ -77,7 +77,10 @@ class PluginTracker(object):
             self._instance.finalize()
         
     def isLoaded(self):
-        return self._instance != None
+        try:
+            return self._instance != None
+        except AttributeError:
+            return False
     
     def preReload(self):
         try:
@@ -132,6 +135,7 @@ class PluginTracker(object):
         
         del self._env
         del self._instance
+        
         
     def reload(self):
         self.preReload()
