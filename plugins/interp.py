@@ -43,7 +43,7 @@ class Plugin(Base):
             agent = Agent(reactor)
 
             d = agent.request(
-                'GET',
+                'GET', 
                 'http://eval.appspot.com/eval?%s'%data
             )
             

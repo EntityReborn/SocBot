@@ -23,7 +23,7 @@ class Plugin(Base):
     @Base.trigger("NICKSERVSET")
     def on_nsset(self, bot, user, details):
         """NICKSERVSET <nick> <pass> - Set the password to use for registering with nickserv at login"""
-        if not user.hasPerm(user, 'nickserv.set'):
+        if not user.hasPerm('nickserv.set'):
             raise InsuffPerms
         
         if len(details['splitmsg']) != 2:

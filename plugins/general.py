@@ -9,6 +9,22 @@ class Plugin(Base):
         """PING - Ask the bot to respond with 'Pong'"""
         return "Pong"
     
+    @Base.trigger("MSG")
+    def on_msg(self, bot, user, details):
+        """MSG <target> <msg> - Send <msg> to <target>"""
+        if not user.hasPerm('general.msg'):
+            raise InsuffPerms, "general.msg"
+        
+        if not len(details['splitmsg']) > 1:
+            raise BadParams
+        
+        target = details['splitmsg'][0]
+        msg = " ".join(details['splitmsg'][1:])
+        
+        bot.msg(target, msg)
+        
+        return True
+    
     @Base.trigger("RESTART")
     def on_restart(self, bot, user, details):
         """RESTART [message] - Ask the bot to restart"""
