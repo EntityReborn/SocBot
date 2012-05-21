@@ -90,11 +90,16 @@ class Connection(irc.IRCClient):
 
     def connectionLost(self, reason):
         self.log.info("lost connection: {0}".format(reason))
-
+        
+        self._ping_deferred.cancel()
+        self._reconnect_deferred.cancel()
+        
         irc.IRCClient.connectionLost(self, reason)
         
         if self.shutdown:
             self.factory.removeBot(self)
+        else:
+            self._timeout_reconnect()
     
     def privmsg(self, user, channel, msg):
         channel = channel.lower()
@@ -138,7 +143,7 @@ class BotFactory(protocol.ReconnectingClientFactory):
     protocol = Connection
     log = logging.getLogger("socbot")
     ping_interval = 60.0
-    pong_timeout = 120.0
+    pong_timeout = 60.0
 
     def __init__(self, name, config, sharedstate, main):
         self.name = name
