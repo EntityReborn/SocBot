@@ -16,7 +16,7 @@ designed to be for the ##socialites community of [Freenode][fnirc].
     * [SQLAlchemy][sqla] - Database management.
 
 * Plugins
-    * [Requests][requests] - HTTP requests library
+    * [BeautifulSoup4][bs4] - HTML parsing lib
 
 # Credits #
 
@@ -38,5 +38,5 @@ See LICENSE or [this page][license].
 [fnirc]: irc://irc.freenode.net "FreeNode.net IRC community"
 [pywin]: http://sourceforge.net/projects/pywin32 "PyWin32"
 [pyargparse]: http://pypi.python.org/pypi/argparse "ArgParse on pypi"
-[requests]: http://docs.python-requests.org/en/latest/index.html "Python Requests"
+[bs4]: http://www.crummy.com/software/BeautifulSoup/ "BeautifulSoup 4"
 [sqla]: http://sqlalchemy.org "SQLAlchemy"
