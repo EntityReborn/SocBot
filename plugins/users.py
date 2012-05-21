@@ -207,7 +207,7 @@ class Plugin(Base):
         
         if len(details['splitmsg']) >= 2:
             try:
-                usr = bot.users.getUser(details['splitmsg'].pop(0).lower())
+                usr = bot.users.getRegistration(details['splitmsg'].pop(0).lower())
             except NoSuchUser:
                 return "Unknown user."
             
@@ -229,7 +229,7 @@ class Plugin(Base):
         
         if len(details['splitmsg']) == 2:
             try:
-                usr = bot.users.getUser(details['splitmsg'].pop(0).lower())
+                usr = bot.users.getRegistration(details['splitmsg'].pop(0).lower())
             except NoSuchUser:
                 return "Unknown user."
             
@@ -249,7 +249,7 @@ class Plugin(Base):
         
         if len(details['splitmsg']) >= 2:
             try:
-                usr = bot.users.getUser(details['splitmsg'].pop(0).lower())
+                usr = bot.users.getRegistration(details['splitmsg'].pop(0).lower())
             except NoSuchUser:
                 return "Unknown user."
             
@@ -276,9 +276,11 @@ class Plugin(Base):
             nick = parts.pop(0).lower()
 
         if nick:
-            usr = bot.users.getUser(nick)
-
-            if usr:
+            if bot.users.hasUser(nick):
+                usr = bot.users.getUser(nick)
+                
                 return self.print_user(usr)
             else:
-                return "No user known by that name!"
+                return "Unknown user."
+            
+            

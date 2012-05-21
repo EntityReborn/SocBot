@@ -138,18 +138,15 @@ if __name__ == "__main__":
 
     sstate = {}
 
+    m = main(dir, sstate)
+    
     def handle_signal(signum, stackframe):
-        if signum == signal.SIGINT or \
-        signum == signal.SIGTERM:
-            for name, bots in sstate["connections"].iteritems():
-                for bot in bots:
-                    bot.quit("CTRL-C")
+        m.shutdown()
+        reactor.stop()
 
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
-
-    m = main(dir, sstate)
-
+    
     if m.load():
         m.run()
     else:

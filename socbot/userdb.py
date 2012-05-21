@@ -320,6 +320,11 @@ class UserDB(object):
         
         raise NoSuchUser, username
         
+    def hasUser(self, nick):
+        nick = nick.lower()
+        
+        return nick in self.users
+    
     def getUser(self, nick):
         nick = nick.lower()
         
