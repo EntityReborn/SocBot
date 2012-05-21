@@ -91,8 +91,10 @@ class Connection(irc.IRCClient):
     def connectionLost(self, reason):
         self.log.info("lost connection: {0}".format(reason))
         
-        self._ping_deferred.cancel()
-        self._reconnect_deferred.cancel()
+        if self._ping_deferred:
+            self._ping_deferred.cancel()
+        if self._reconnect_deferred:
+            self._reconnect_deferred.cancel()
         
         irc.IRCClient.connectionLost(self, reason)
         
