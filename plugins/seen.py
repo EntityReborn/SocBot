@@ -92,14 +92,22 @@ class Plugin(Base):
     @Base.event("NICK", "PRIVMSG", "JOIN", "PART", "QUIT")
     def on_updateseen(self, bot, command, prefix, params):
         nick = prefix.split("!")[0].lower()
-
+        
         if len(params) > 1:
             msg = params[1]
         else:
             msg = ""
 
         channel = params[0]
-        self.seenManager(bot).addSeen(nick, channel, command, msg)
+        
+        if bot.name().lower() == channel.lower():
+            # No need to store PMs
+            return
+        
+        if command == "NICK":
+            self.seenManager(bot).addSeen(nick, msg, command, channel)
+        else:
+            self.seenManager(bot).addSeen(nick, channel, command, msg)
         
         if command == 'PRIVMSG':
             self.checkTell(bot, nick)
@@ -134,6 +142,7 @@ class Plugin(Base):
         
         type = data.type
         extra = data.data
+        channel = data.channel
         
         time = datetime.datetime.strftime(data.time, '%c')
         if type == "NICK":

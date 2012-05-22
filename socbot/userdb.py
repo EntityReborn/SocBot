@@ -311,6 +311,9 @@ class UserDB(object):
     def saveSession(self):
         self.session.commit()
         
+    def allRegistrations(self):
+        return self.session.query(RegisteredUser)
+        
     def getRegistration(self, username):
         username = username.lower()
             

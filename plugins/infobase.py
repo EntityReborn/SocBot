@@ -29,6 +29,9 @@ class FactoidManager(object):
         Base.metadata.create_all(self.engine)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
+        
+    def allFacts(self):
+        return self.session.query(Factoid)
 
     def addFact(self, key, response, replace=False):
         key = key.lower()
