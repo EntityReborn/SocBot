@@ -21,6 +21,17 @@ class Base(object):
         def call(func):
             func.triggers = triggers
             func.type = "trigger"
+            func.hidden = False
+            return func
+        
+        return call
+    
+    @classmethod
+    def hiddenTrigger(cls, *triggers):
+        def call(func):
+            func.triggers = triggers
+            func.type = "trigger"
+            func.hidden = True
             return func
         
         return call

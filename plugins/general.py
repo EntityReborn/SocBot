@@ -9,6 +9,17 @@ class Plugin(Base):
         """PING - Ask the bot to respond with 'Pong'"""
         return "Pong"
     
+    @Base.trigger("NICK")
+    def on_nick(self, bot, user, details):
+        """NICK <newnick> - Request to change the bot's name"""
+        if not user.hasPerm('general.nick'):
+            raise InsuffPerms, "general.nick"
+        
+        if len(details['splitmsg']) != 1:
+            raise BadParams
+        
+        bot.nick(details['splitmsg'][0])
+        
     @Base.trigger("MSG")
     def on_msg(self, bot, user, details):
         """MSG <target> <msg> - Send <msg> to <target>"""

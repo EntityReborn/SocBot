@@ -102,12 +102,11 @@ class RegisteredUser(Base):
     def __repr__(self):
         return "<RegisteredUser('%s', '%s', '%s', '%s', '%s', '%s')>" % \
             (self.username, self.passhash, self.email, self.regdate,
-             self.hostmasks, self.perms)
+             self.perms, self.hostmasks)
             
     def addPerm(self, node):
         if not node.lower() in self.perms:
             self.perms.append(node.lower())
-            
             return True
     
         return False
@@ -115,7 +114,6 @@ class RegisteredUser(Base):
     def remPerm(self, node):
         if node.lower() in self.perms:
             self.perms.remove(node.lower())
-            
             return True
         
         return False
@@ -234,14 +232,16 @@ class User(object):
         self.db.quit(bot, self.nick)
         
     def addPerm(self, node):
-        self.registration.addPerm(node)
+        retn = self.registration.addPerm(node)
         self.db.saveSession()
+        return retn
             
-    def remPerm(self, node, username=None):
-        self.registration.remPerm(node)
+    def remPerm(self, node):
+        retn = self.registration.remPerm(node)
         self.db.saveSession()
+        return retn
             
-    def hasPerm(self, node, default=False, username=None):
+    def hasPerm(self, node, default=False):
         return self.registration.hasPerm(node, default)
     
     def username(self):
@@ -253,12 +253,14 @@ class User(object):
         return username.lower()
         
     def addHostmask(self, hostmask, username=None):
-        self.registration.addHostmask(hostmask)
+        retn = self.registration.addHostmask(hostmask)
         self.db.saveSession()
+        return retn
             
     def remHostmask(self, hostmask):
-        self.registration.remHostmask(hostmask)
+        retn = self.registration.remHostmask(hostmask)
         self.db.saveSession()
+        return retn
     
     def hasHostmask(self, hostmask):
         return self.registration.hasHostmask(hostmask)
@@ -319,6 +321,14 @@ class UserDB(object):
             return reg
         
         raise NoSuchUser, username
+    
+    def getUserInfo(self, username):
+        username = username.lower()
+        
+        usr = User(self, username)
+        usr.registration = self.getRegistration(username)
+        
+        return usr
         
     def hasUser(self, nick):
         nick = nick.lower()

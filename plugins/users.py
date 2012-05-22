@@ -203,64 +203,56 @@ class Plugin(Base):
     @Base.trigger("ADDPERM")
     def in_addperm(self, bot, user, details):
         """ADDPERM <user> <perm>[ <perm> ...] - Give a user one or more permission nodes."""
-        nick, hostmask = details['fulluser'].split("!")
-        
+        if not user.hasPerm("users.permissions.remove"):
+            raise InsuffPerms, 'users.permissions.add'
+                  
         if len(details['splitmsg']) >= 2:
             try:
-                usr = bot.users.getRegistration(details['splitmsg'].pop(0).lower())
+                usr = bot.users.getUserInfo(details['splitmsg'].pop(0).lower())
             except NoSuchUser:
                 return "Unknown user."
             
-            try:
-                if not user.hasPerm("users.permissions.add"):
-                    raise InsuffPerms, 'users.permissions.add'
-                
-                for perm in details['splitmsg']:
-                    user.addPerm(perm)
-            except UserNotLoggedIn:
-                return "You need to login!"
+            for perm in details['splitmsg']:
+                usr.addPerm(perm)
+        else:
+            raise BadParams
         
         return True
     
     @Base.trigger("HASPERM")
     def on_hasperm(self, bot, user, details):
         """HASPERM <user> <permnode> - Check if a user has a specified user permission"""
-        nick, hostmask = details['fulluser'].split("!")
-        
         if len(details['splitmsg']) == 2:
             try:
-                usr = bot.users.getRegistration(details['splitmsg'].pop(0).lower())
+                usr = bot.users.getUserInfo(details['splitmsg'].pop(0).lower())
             except NoSuchUser:
                 return "Unknown user."
             
-            retn = user.hasPerm(details['splitmsg'][0])
+            retn = usr.hasPerm(details['splitmsg'][0])
             
             if retn:
                 return "User has this permission."
             
             return "User does NOT have this permission."
         else:
-            return BadParams
+            raise BadParams
             
     @Base.trigger("REMPERM")
     def in_remperm(self, bot, user, details):
         """REMPERM <user> <perm>[ <perm> ...] - Deny a user one or more permission nodes."""
-        nick, hostmask = details['fulluser'].split("!")
-        
+        if not user.hasPerm("users.permissions.remove"):
+            raise InsuffPerms, 'users.permissions.remove'
+                  
         if len(details['splitmsg']) >= 2:
             try:
-                usr = bot.users.getRegistration(details['splitmsg'].pop(0).lower())
+                usr = bot.users.getUserInfo(details['splitmsg'].pop(0).lower())
             except NoSuchUser:
                 return "Unknown user."
             
-            try:
-                if not user.hasPerm("users.permissions.remove"):
-                    raise InsuffPerms, 'users.permissions.remove'
-                
-                for perm in details['splitmsg']:
-                    user.remPerm(perm)
-            except UserNotLoggedIn:
-                return "You need to login!"
+            for perm in details['splitmsg']:
+                usr.remPerm(perm)
+        else:
+            raise BadParams
         
         return True
 

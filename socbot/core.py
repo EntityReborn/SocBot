@@ -26,7 +26,11 @@ class Connection(irc.IRCClient):
     def _idle_ping(self):
         self.log.debug("sending idle ping")
 
+        if self._ping_deferred and self._ping_deferred.active():
+            self._ping_deferred.cancel()
+            
         self._ping_deferred = None
+            
         self._reconnect_deferred = reactor.callLater(
             self.factory.pong_timeout, self._timeout_reconnect)
 
@@ -39,16 +43,18 @@ class Connection(irc.IRCClient):
     def dataReceived(self, data):
         irc.IRCClient.dataReceived(self, data)
 
-        if self._ping_deferred is not None:
+        if self._ping_deferred and self._ping_deferred.active():
             self._ping_deferred.reset(self.factory.ping_interval)
 
     def irc_PONG(self, prefix_unused, params):
         if params[-1] == 'idle-socbot' and self._reconnect_deferred:
             self.log.debug("received idle pong")
-
-            self._reconnect_deferred.cancel()
-
+            
+            if self._reconnect_deferred and self._reconnect_deferred.active():
+                self._reconnect_deferred.cancel()
+            
             self._reconnect_deferred = None
+            
             self._ping_deferred = reactor.callLater(
                 self.factory.ping_interval, self._idle_ping)
 
@@ -76,7 +82,7 @@ class Connection(irc.IRCClient):
 
         irc.IRCClient.sendLine(self, str(line))
 
-        if self._ping_deferred is not None:
+        if self._ping_deferred and self._ping_deferred.active():
             self._ping_deferred.reset(self.factory.ping_interval)
 
     def connectionMade(self):

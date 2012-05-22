@@ -38,6 +38,9 @@ class PluginTracker(object):
         
         if trig in self.triggers.keys():
             return self.triggers[trig]
+        
+    def getTriggers(self):
+        return [trig.upper() for trig in self.triggers.keys() if not self.triggers[trig.upper()].hidden]
     
     def getEvent(self, event):
         event = event.upper()
@@ -192,7 +195,7 @@ class PluginCore(object):
         trigs = list()
         
         for tracker in self.plugintrackers.values():
-            trigs += tracker.triggers.keys()
+            trigs += tracker.getTriggers()
             
         return set(trigs)
                 
@@ -284,7 +287,7 @@ class PluginCore(object):
             except Exception:
                 log.exception("exception finalizing plugin in %s" % name)
 
-    def enablePlugin(self, name):
+    def enablePlug(self, name):
         name = name.lower()
         
         log.debug("enabling plugin '{0}'".format(name))

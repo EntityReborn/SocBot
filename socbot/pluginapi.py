@@ -13,6 +13,9 @@ class API(object):
         self.users = users
         self.plugins = plugins
         
+    def nick(self, newnick):
+        self.connection.setNick(newnick)
+        
     def quit(self, message="Good-bye."):
         self.connection.quit(message)
         
