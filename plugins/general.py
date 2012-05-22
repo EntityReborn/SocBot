@@ -18,7 +18,7 @@ class Plugin(Base):
         if len(details['splitmsg']) != 1:
             raise BadParams
         
-        bot.nick(details['splitmsg'][0])
+        bot.setNick(details['splitmsg'][0])
         
     @Base.trigger("MSG")
     def on_msg(self, bot, user, details):

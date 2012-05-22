@@ -13,8 +13,11 @@ class API(object):
         self.users = users
         self.plugins = plugins
         
-    def nick(self, newnick):
+    def setNick(self, newnick):
         self.connection.setNick(newnick)
+        
+    def nick(self):
+        return self.connection.nickname
         
     def quit(self, message="Good-bye."):
         self.connection.quit(message)

@@ -99,12 +99,12 @@ class Plugin(Base):
             msg = ""
 
         channel = params[0]
-        
-        if bot.name().lower() == channel.lower():
+
+        if bot.nick().lower() == channel.lower():
             # No need to store PMs
             return
         
-        if command == "NICK":
+        if command in ["NICK", "QUIT"]:
             self.seenManager(bot).addSeen(nick, msg, command, channel)
         else:
             self.seenManager(bot).addSeen(nick, channel, command, msg)
