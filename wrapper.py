@@ -11,7 +11,6 @@ if __name__ == "__main__":
         
     signal.signal(signal.SIGTERM, handler)
     signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGBREAK, handler)
     
     while code == 3:
         print "Starting new bot process..."
