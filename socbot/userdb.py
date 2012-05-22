@@ -219,7 +219,7 @@ class User(object):
         if not self.isLoggedIn():
             raise UserNotLoggedIn, self.nick
         
-        self.registration = None
+        self.registration = UnregisteredUser()
     
     def joined(self, bot, channel):
         channel = channel.lower()
@@ -252,7 +252,7 @@ class User(object):
             
         return username.lower()
         
-    def addHostmask(self, hostmask, username=None):
+    def addHostmask(self, hostmask):
         retn = self.registration.addHostmask(hostmask)
         self.db.saveSession()
         return retn
