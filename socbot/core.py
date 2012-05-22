@@ -22,7 +22,8 @@ class Connection(irc.IRCClient):
         self.shutdown = False
         self.api = None
         self.channels = []
-
+    
+    #===== Timeout control =====
     def _idle_ping(self):
         self.log.debug("sending idle ping")
 
@@ -40,12 +41,6 @@ class Connection(irc.IRCClient):
         self.log.info("idle timeout; reconnecting")
         self.transport.loseConnection()
 
-    def dataReceived(self, data):
-        irc.IRCClient.dataReceived(self, data)
-
-        if self._ping_deferred and self._ping_deferred.active():
-            self._ping_deferred.reset(self.factory.ping_interval)
-
     def irc_PONG(self, prefix_unused, params):
         if params[-1] == 'idle-socbot' and self._reconnect_deferred:
             self.log.debug("received idle pong")
@@ -58,38 +53,11 @@ class Connection(irc.IRCClient):
             self._ping_deferred = reactor.callLater(
                 self.factory.ping_interval, self._idle_ping)
 
-    def doJoins(self):
-        if self.factory.config["channels"]:
-            for channel, chanconfig in self.factory.config["channels"].iteritems():
-                if not chanconfig["autojoin"]:
-                    continue
-
-                if chanconfig["password"]:
-                    self.join(channel, chanconfig["password"])
-                else:
-                    self.join(channel)
-
-    def irc_ERR_NOMOTD(self, prefix, params):
-        self.log.info("no MOTD")
-        self.doJoins()
-
-    def receivedMOTD(self, motd):
-        self.log.info("received MOTD")
-        self.doJoins()
-
-    def sendLine(self, line):
-        self.log.debug("sending line `{0}`".format(line))
-
-        irc.IRCClient.sendLine(self, str(line))
-
-        if self._ping_deferred and self._ping_deferred.active():
-            self._ping_deferred.reset(self.factory.ping_interval)
-
     def connectionMade(self):
         self.log.info("connected to server")
 
         self.factory.resetDelay()
-        self.factory.addBot(self)
+        self.factory.onConnected(self)
 
         irc.IRCClient.connectionMade(self)
         self._ping_deferred = reactor.callLater(self.factory.ping_interval, self._idle_ping)
@@ -104,11 +72,22 @@ class Connection(irc.IRCClient):
         
         irc.IRCClient.connectionLost(self, reason)
         
-        if self.shutdown:
-            self.factory.removeBot(self)
-        else:
-            self._timeout_reconnect()
-    
+    #===== Message Control =====
+        
+    def dataReceived(self, data):
+        irc.IRCClient.dataReceived(self, data)
+
+        if self._ping_deferred and self._ping_deferred.active():
+            self._ping_deferred.reset(self.factory.ping_interval)
+
+    def sendLine(self, line):
+        self.log.debug("sending line `{0}`".format(line))
+
+        irc.IRCClient.sendLine(self, str(line))
+
+        if self._ping_deferred and self._ping_deferred.active():
+            self._ping_deferred.reset(self.factory.ping_interval)
+            
     def privmsg(self, user, channel, msg):
         channel = channel.lower()
         
@@ -124,7 +103,9 @@ class Connection(irc.IRCClient):
             return
 
         irc.IRCClient.msg(self, target, message, length)
-
+        
+    #===== Lifetime Control =====
+    
     def quit(self, message):
         self.shutdown = True
 
@@ -134,6 +115,27 @@ class Connection(irc.IRCClient):
     def restart(self, message="Restarting..."):
         self.factory.sharedstate['exitcode'] = 3
         self.factory.shutdownAll(message)
+        
+    def _doJoins(self):
+        if self.factory.config["channels"]:
+            for channel, chanconfig in self.factory.config["channels"].iteritems():
+                if not chanconfig["autojoin"]:
+                    continue
+
+                if chanconfig["password"]:
+                    self.join(channel, chanconfig["password"])
+                else:
+                    self.join(channel)
+
+    #===== Incoming Events =====
+
+    def irc_ERR_NOMOTD(self, prefix, params):
+        self.log.info("no MOTD")
+        self._doJoins()
+
+    def receivedMOTD(self, motd):
+        self.log.info("received MOTD")
+        self._doJoins()
 
     def joined(self, channel):
         self.log.info("joined " + channel)
@@ -159,20 +161,18 @@ class BotFactory(protocol.ReconnectingClientFactory):
         self.core = main
         self.config = config
         self.shuttingdown = False
+        self.connection = None
         self.users = UserDB('conf/%s-users.db' % name.lower())
 
     def clientConnectionLost(self, connector, unused_reason):
         self.log.info("connection lost")
+        self.connection = None
         
         if not self.shuttingdown:
             protocol.ReconnectingClientFactory.clientConnectionLost(
                 self, connector, unused_reason)
 
-        if not self.sharedstate["connections"]:
-            try:
-                reactor.stop()
-            except ReactorNotRunning:
-                pass
+        self.core.connectionLost(self)
 
     def buildProtocol(self, addr):
         self.log.debug("creating new connection")
@@ -185,20 +185,13 @@ class BotFactory(protocol.ReconnectingClientFactory):
 
         return p
 
-    def addBot(self, bot):
-        self.sharedstate["connections"][self.name].append(bot)
-
-    def removeBot(self, bot):
-        self.sharedstate["connections"][self.name].remove(bot)
-
-        if not self.sharedstate["connections"][self.name]:
-            del self.sharedstate["connections"][self.name]
+    def onConnected(self, bot):
+        if self.connection:
+            self.log.warning("a previous connection exists, removing it")
+            self.connection.quit()
+            self.connection = None
             
-        if not self.sharedstate["connections"]:
-            try:
-                reactor.stop()
-            except ReactorNotRunning:
-                pass
+        self.connection = bot
 
     def shutdownAll(self, msg="Shutdown requested."):
         self.core.shutdown(msg)

@@ -22,7 +22,6 @@ class main(object):
             self.sstate = {}
 
         self.sstate["exitcode"] = 0
-        self.sstate["connections"] = defaultdict(list)
 
         if not os.path.isdir(curdir):
             curdir = os.path.dirname(curdir)
@@ -31,6 +30,7 @@ class main(object):
         self.sstate["confs"] = self.sstate["basedir"] + "/conf/"
 
         log.info("base directory is {0}".format(self.sstate["basedir"]))
+        self.factories = {}
 
     def load(self):
         if not self.loadConfig(): return False
@@ -83,6 +83,7 @@ class main(object):
         if "servers" in self.config:
             for name, config in self.config["servers"].iteritems():
                 f = BotFactory(name, config, self.sstate, self)
+                self.factories[name.lower()] = f
 
                 botService = internet.TCPClient(config["host"], config["port"], f)
                 log.info("Connecting to {0} ({1})".format(name, config["host"]))
@@ -97,13 +98,20 @@ class main(object):
             sys.exit(self.sstate['exitcode'])
         else:
             log.error("Nothing to connect to!\nCheck your socbot.conf file!")
+            
+    def connectionLost(self, lostconnection):
+        for f in self.factories.values():
+            if f.connection or not f.shuttingdown:
+                return
+            
+        reactor.stop()
 
     def shutdown(self, msg="Shutdown requested."):
-        for connections in self.sstate["connections"].values(): # [bot, bot, bot, ...]
-            for inst in connections:
-                inst.quit(msg)
-                
-            #reactor.stop()
+        for factory in self.factories.values(): # [bot, bot, bot, ...]
+            try:
+                factory.connection.quit(msg)
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     import argparse, signal
