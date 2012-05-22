@@ -226,7 +226,10 @@ class User(object):
         self.channels[channel].name = channel
         
     def parted(self, bot, channel):
-        del self.channels[channel.lower()]
+        chan = channel.lower()
+        
+        if chan in self.channels:
+            del self.channels[chan]
         
     def quit(self, bot):
         self.db.quit(bot, self.nick)
