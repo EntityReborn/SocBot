@@ -1,0 +1,15 @@
+{% for dbname, facts in dbs %}
+<h1>{{ dbname }}</h1>
+<table border="1" bordercolor="#000000" style="background-color:#FFFFFF" width="100%" cellpadding="1" cellspacing="1">
+    <tr>
+        <td>Keyword</td>
+        <td>Response</td>
+    </tr>
+{% for fact in facts.allFacts() %}
+    <tr>
+        <td>{{ fact.keyword }}</td>
+        <td>{{ fact.response }}</td>
+    </tr>
+{% endfor %}
+</table>
+{% endfor %}

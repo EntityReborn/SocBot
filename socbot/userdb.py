@@ -1,10 +1,8 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import Mutable
-from sqlalchemy import Table, Text, Column, Integer, String
+from sqlalchemy import Text, Column, Integer, String
 from sqlalchemy import DateTime, PickleType, create_engine
 from sqlalchemy.orm import sessionmaker
-
-from twisted.words.protocols.irc import parseModes
 
 import hashlib, collections, datetime
 import json, re

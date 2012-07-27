@@ -1,0 +1,21 @@
+{% for dbname, users in dbs %}
+<h1>{{ dbname }}</h1>
+<table border="1" bordercolor="#000000" style="background-color:#FFFFFF" width="100%" cellpadding="1" cellspacing="1">
+    <tr>
+        <td>Username</td>
+        <td>Registration Date</td>
+        <td>Hostmasks</td>
+        <td>Permissions</td>
+        <td>Email</td>
+    </tr>
+{% for user in users.allRegistrations() %}
+    <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ user.regdate }}</td>
+        <td>{{ ", ".join(user.hostmasks) }}</td>
+        <td>{{ ", ".join(user.perms) }}</td>
+        <td>{{ user.email.split("@")[0][:3] }}*****@{{ user.email.split("@")[1] }}</td>
+    </tr>
+{% endfor %}
+</table>
+{% endfor %}

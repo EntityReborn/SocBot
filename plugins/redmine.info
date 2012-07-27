@@ -1,0 +1,4 @@
+[general]
+name = Redmine# human friendly name
+modulefile = redmine.py# Actual module to import to load plugins
+enabled = True
