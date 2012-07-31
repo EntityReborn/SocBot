@@ -1,17 +1,55 @@
 from inspect import getmembers, ismethod
+import os
+
+from socbot.config import ConfigObj
+from socbot.tools import validateConfig
 
 class InsuffPerms(Exception):
-    """The user does not have the required permissions."""
+    """The user does not have the required permissions"""
 
 class BadParams(Exception):
     """The supplied parameters are not correct"""
+    
+class DoesntUseConfig(Exception):
+    """This plugin says it doesn't use a config file"""
+    
+class InvalidConfig(Exception):
+    """The config file doesn't match specifications for the values it contains"""
 
 class Base(object):
-    def __init__(self, manager, info, users):
-        self.users = users
+    def __init__(self, manager, info):
         self.manager = manager
         self.info = info
+        
+        name = self.info['general']['name'].lower()
+            
+        maindir = self.manager.getDataDir()
+        self._datadir = '%s/%s' % (maindir, name)
+        
+        if not os.path.exists(self._datadir):
+            os.makedirs(self._datadir)
+            
+    def getDataDir(self):
+        return self._datadir
+                
+    def getConfig(self):
+        if self.info['general']['usesconfig']:
+            if self.info['general']['usesconfspec']:
+                conf = ConfigObj('%s/config.conf' % self._datadir, configspec="plugins/%s.spec" % self.info['general']['name'].lower())
 
+                invalid = validateConfig(conf)
+                if invalid:
+                    self.manager.log.error("Error in config for %s:" % self.info['general']['name'])
+                    self.manager.log.error('\n'.join(invalid))
+                    
+                    raise InvalidConfig
+            else:
+                conf = ConfigObj('%s/config.conf' % self._datadir)
+        else:
+            raise DoesntUseConfig
+        
+        return conf
+                
     def initialize(self, *args, **kwargs):
         """Initialize the plugin"""
         pass
@@ -73,5 +111,6 @@ class Base(object):
     
     def disabling(self, *args, **kwargs):
         pass
+    
     def finalize(self, *args, **kwargs):
         pass

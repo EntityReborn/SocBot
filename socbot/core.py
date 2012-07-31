@@ -2,7 +2,6 @@ import logging
 
 from twisted.words.protocols import irc
 from twisted.internet import protocol, reactor
-from twisted.internet.error import ReactorNotRunning
 
 from socbot.pluginapi import API
 from socbot.userdb import UserDB

@@ -1,5 +1,8 @@
+# To see all available options, see conf/config.spec
+
+# Strings must be single quoted.
 [general]
-	commandchars = '^'
+	commandchars = '%'
 
 [servers]
 	[[Freenode]]

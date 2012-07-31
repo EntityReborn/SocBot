@@ -9,9 +9,11 @@ def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     
     # Do first fork.
     try: 
-        pid = os.fork() 
+        pid = os.fork()
+        
         if pid > 0:
             sys.exit(0)   # Exit first parent.
+            
     except OSError, e: 
         sys.stderr.write("fork #1 failed: (%d) %s\n" % (e.errno, e.strerror) )
         sys.exit(1)
@@ -24,8 +26,10 @@ def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     # Do second fork.
     try: 
         pid = os.fork() 
+        
         if pid > 0:
             sys.exit(0)   # Exit second parent.
+            
     except OSError, e: 
         sys.stderr.write("fork #2 failed: (%d) %s\n" % (e.errno, e.strerror) )
         sys.exit(1)
@@ -39,7 +43,7 @@ def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     os.dup2(so.fileno(), sys.stdout.fileno())
     os.dup2(se.fileno(), sys.stderr.fileno())
 
-def setupsingleinstance(pidfile):
+def setupSingleInstance(pidfile):
     def taskexists(pid):
         if sys.platform == "win32":
             import ctypes

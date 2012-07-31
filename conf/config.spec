@@ -11,3 +11,8 @@
         	[[[[__many__]]]]
         		password = string(default="")
         		autojoin = boolean(default=True)
+        		
+[directories]
+    plugins = string(default="plugins")
+    plugindata = string(default="data")
+    logs = string(default="logs")

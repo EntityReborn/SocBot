@@ -7,7 +7,10 @@ class Plugin(Base): # Must subclass Base
         
     def factManager(self, bot):
         if not bot.name().lower() in self.factmanagers:
-            self.factmanagers[bot.name().lower()] = FactoidManager("conf/%s-factoids.db" % bot.name().lower())
+            confdir = self.getDataDir()
+            file = "%s/%s-factoids.db" % (confdir, bot.name().lower())
+            self.manager.log.info("loading factoids from %s" % file)
+            self.factmanagers[bot.name().lower()] = FactoidManager(file)
         
         return self.factmanagers[bot.name().lower()]
     

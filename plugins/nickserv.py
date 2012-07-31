@@ -1,12 +1,7 @@
 from socbot.pluginbase import Base, InsuffPerms, BadParams
 from socbot.plugincore import UnregisterEvent
-from socbot.config import ConfigObj
 
 class Plugin(Base):
-    def initialize(self, *args, **kwargs):
-        self.conf = ConfigObj('conf/nickserv.conf')
-        pass
-        
     @Base.event("NOTICE")
     def on_notice(self, bot, command, prefix, params):
         if "!" in prefix:
@@ -14,7 +9,8 @@ class Plugin(Base):
             
             if nick.lower() == "nickserv" and "registered" in params[1]:
                 try:
-                    bot.connection.msg('NICKSERV', 'identify %s %s' % (bot.connection.nickname, self.conf['general']['nickservpass']))
+                    conf = self.getConfig()
+                    bot.msg('NICKSERV', 'identify %s %s' % (conf['general']['nickservnick'], conf['general']['nickservpass']))
                 except KeyError:
                     pass
                 
@@ -29,17 +25,17 @@ class Plugin(Base):
         if len(details['splitmsg']) != 2:
             raise BadParams
         
-        self.conf.reload()
+        conf = self.getConfig()
         
-        if not 'general' in self.conf:
-            self.conf['general'] = {}
+        if not 'general' in conf:
+            conf['general'] = {}
             
-        self.conf['general']['nickservnick'] = details['splitmsg'][0]
-        self.conf['general']['nickservpass'] = details['splitmsg'][1]
+        conf['general']['nickservnick'] = details['splitmsg'][0]
+        conf['general']['nickservpass'] = details['splitmsg'][1]
         
-        self.conf.write()
+        conf.write()
         
-        bot.msg('NICKSERV', 'identify %s %s' % (self.conf['general']['nickservnick'], 
-                                                self.conf['general']['nickservpass']))
+        bot.msg('NICKSERV', 'identify %s %s' % (conf['general']['nickservnick'], 
+                                                conf['general']['nickservpass']))
         
         return True

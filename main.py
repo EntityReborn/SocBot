@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import sys, os
-from collections import defaultdict
 import logging
 
 from twisted.internet import reactor
@@ -15,67 +14,48 @@ from socbot.log import addLogger
 from socbot import process
 
 class main(object):
-    def __init__(self, curdir, sstate=None):
+    def __init__(self, sstate):
         self.sstate = sstate
 
-        if sstate == None:
-            self.sstate = {}
-
         self.sstate["exitcode"] = 0
-
-        if not os.path.isdir(curdir):
-            curdir = os.path.dirname(curdir)
-
-        self.sstate["basedir"] = os.path.abspath(curdir)
-        self.sstate["confs"] = self.sstate["basedir"] + "/conf/"
 
         log.info("base directory is {0}".format(self.sstate["basedir"]))
         self.factories = {}
 
     def load(self):
         if not self.loadConfig(): return False
-        if not self.loadUsers(): return False
+        
         self.loadPlugs()
 
         return True
 
     def loadConfig(self):
-        log.info("loading bot config from {0}".format(
-            self.sstate["confs"]+"socbot.conf"))
+        log.info("loading bot config from {0}".format("conf/socbot.conf"))
 
-        self.config = ConfigObj(self.sstate["confs"]+"socbot.conf",
-            configspec=self.sstate["confs"]+"config.spec",
+        self.config = ConfigObj("conf/socbot.conf", configspec="conf/config.spec",
             unrepr=True)
 
         invalid = validateConfig(self.config)
         if invalid:
+            log.error("Error in config:")
             log.error('\n'.join(invalid))
+            
             return False
-
-        return True
-
-    def loadUsers(self):
-        log.info("loading user config from {0}".format(
-            self.sstate["confs"]+"users.conf"))
-
-        users = ConfigObj(self.sstate["confs"]+"users.conf",
-            configspec=self.sstate["confs"]+"users.spec",
-            unrepr=True)
-
-        invalid = validateConfig(users)
-        if invalid:
-            log.error('\n'.join(invalid))
-            return False
-
-        self.sstate["users"] = users
+        
+        self.sstate['config'] = self.config
+        
+        for d in self.config['directories'].values():
+            if not os.path.exists(d):
+                os.makedirs(d)
 
         return True
 
     def loadPlugs(self):
         log.info("starting pluginmanager and loading plugins")
 
-        pm = PluginCore(self.sstate)
+        pm = PluginCore(self.sstate, self.config['directories']['plugins'])
         self.sstate["pluginmanager"] = pm
+        
         pm.loadPlugins()
         pm.initPlugins()
 
@@ -134,19 +114,22 @@ if __name__ == "__main__":
 
     if args.daemon:
         process.daemonize()
-
-    dir = os.path.abspath(os.path.dirname(__file__))
+        
+    path = os.path.abspath(os.path.dirname(__file__))
+    os.chdir(path)
     
     if not args.multi:
-        alone = process.setupsingleinstance(dir+"/conf/socbot.pid")
+        alone = process.setupSingleInstance("conf/socbot.pid")
 
         if not alone:
             log.error("A SocBot is already running! Use --multi to run several instances.")
             sys.exit(-1)
 
-    sstate = {}
+    sstate = {
+        "basedir":path
+    }
 
-    m = main(dir, sstate)
+    m = main(sstate)
     
     def handle_signal(signum, stackframe):
         m.shutdown()

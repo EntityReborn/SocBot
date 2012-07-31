@@ -85,7 +85,8 @@ class Plugin(Base):
         
     def seenManager(self, bot):
         if not bot.name().lower() in self.seenmanagers:
-            self.seenmanagers[bot.name().lower()] = seenbase.SeenManager("conf/%s-seen.db" % bot.name().lower())
+            data = self.getDataDir()
+            self.seenmanagers[bot.name().lower()] = seenbase.SeenManager("%s/%s-seen.db" % (data, bot.name().lower()))
         
         return self.seenmanagers[bot.name().lower()]
     

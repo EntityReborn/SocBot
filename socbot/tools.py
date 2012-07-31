@@ -130,7 +130,6 @@ def validateConfig(config):
     errors = list()
 
     if results != True:
-        print "\nError in config:"
         for (section_list, key, exc) in flatten_errors(config, results):
             if key is not None:
                 errors.append('\t"%s" in "%s" failed validation. (%s)' % (key, ', '.join(section_list), exc))

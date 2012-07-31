@@ -3,20 +3,20 @@ from socbot.pluginbase import Base, BadParams, InsuffPerms
 import urllib2, json, re
 from cookielib import CookieJar
 
-from socbot.config import ConfigObj
-
-def getIssue(baseurl, num, template="[ {project}/{tracker}/{status} ] \"{subject}\" by {author} on {date} ( {url} )"):
+def getIssue(baseurl, num, template, conf):
     if baseurl.endswith("/"):
         baseurl = baseurl[:-1]
 
     jar = CookieJar()
     opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(jar))
     
+    cookiesession = conf['cookie']
+    
     opener.addheaders = [
         ('User-agent', 'Mozilla/5.0'),
-        ("Cookie", r"_redmine_session=BAh7CDoMdXNlcl9pZGkCJQE6EF9jc3JmX3Rva2VuIjFQRnphL3JjbWlvMVFUL24wbFFSMEwxT3dzK3g0UGIrbGpjcTlqSy9kM3JJPToPc2Vzc2lvbl9pZCIlMzZiOTdmYWE4MWEyNzk3ZTg0YmYzOWYzNjUzMGQ4ZjU%3D--d9c610370deeec86e3ff051b7b2baa616357451c")
+        ("Cookie", cookiesession)
     ]
-    print '%s/%s.json' % (baseurl, num)
+
     connection = opener.open('%s/%s.json' % (baseurl, num))
 
     data = connection.read()
@@ -41,69 +41,117 @@ def getIssue(baseurl, num, template="[ {project}/{tracker}/{status} ] \"{subject
     )
 
 class Plugin(Base): # Must subclass Base
-    def initialize(self, *args, **kwargs):
-        self.conf = ConfigObj('conf/redmine.conf')
-        
     @Base.trigger("REDURL")
     def on_seturl(self, bot, user, details):
         """REDURL <url> - Set the url to use when looking up issues in redmine"""
-        
         if not user.hasPerm('redmine.seturl'):
+            raise InsuffPerms
+        
+        conf = self.getConfig()
+        
+        if not details['splitmsg']:
+            return conf['general']['redmineurl']
+        
+        if not 'general' in conf:
+            conf['general'] = {}
+            
+        conf['general']['redmineurl'] = details['fullmsg'].partition(" ")[2]
+        
+        conf.write()
+        
+        return True
+    
+    @Base.trigger("REDPASSREGEX")
+    def on_setregex(self, bot, user, details):
+        """REDPASSREGEX <string> - Set the regex to use when passively looking up issues in redmine"""
+        if not user.hasPerm('redmine.regex'):
+            raise InsuffPerms
+        
+        conf = self.getConfig()
+        
+        if not details['splitmsg']:
+            return conf['general']['passiveregex']
+        
+        if not 'general' in conf:
+            conf['general'] = {}
+            
+        conf['general']['passiveregex'] = details['fullmsg'].partition(" ")[2]
+        
+        conf.write()
+        
+        return True
+    
+    @Base.trigger("REDADDTRIG")
+    def on_add(self, bot, user, details):
+        """REDADDTRIG <nick> - Add the user to be forced active output, even when passively triggering"""
+        if not user.hasPerm('redmine.addtrig'):
             raise InsuffPerms
         
         if len(details['splitmsg']) != 1:
             raise BadParams
         
-        self.conf.reload()
+        conf = self.getConfig()
         
-        if not 'general' in self.conf:
-            self.conf['general'] = {}
-            
-        self.conf['general']['redmineurl'] = details['splitmsg'][0]
+        if not 'activetriggerers' in conf['general']:
+            conf['general']['activetriggerers'] = []
         
-        self.conf.write()
+        if not details['splitmsg'][0] in conf['general']['activetriggerers']:
+            conf['general']['activetriggerers'].append(details['splitmsg'][0])
+            conf.write()
+        
+        return True
+    
+    @Base.trigger("REDREMTRIG")
+    def on_del(self, bot, user, details):
+        """REDREMTRIG <nick> - Remove the user to be forced active output, even when passively triggering"""
+        if not user.hasPerm('redmine.remtrig'):
+            raise InsuffPerms
+        
+        if len(details['splitmsg']) != 1:
+            raise BadParams
+        
+        conf = self.getConfig()
+        
+        if not 'activetriggerers' in conf['general']:
+            conf['general']['activetriggerers'] = []
+        
+        if details['splitmsg'][0] in conf['general']['activetriggerers']:
+            conf['general']['activetriggerers'].remove(details['splitmsg'][0])
+            conf.write()
         
         return True
     
     @Base.trigger("SETACTFMT")
     def on_setactfmt(self, bot, user, details):
         """SETACTFMT <string> - Set the template to use when triggering a lookup via the `bug` trigger"""
-        
         if not user.hasPerm('redmine.setformat'):
             raise InsuffPerms
         
         if not details['splitmsg']:
             raise BadParams
         
-        self.conf.reload()
-        
-        if not 'general' in self.conf:
-            self.conf['general'] = {}
+        conf = self.getConfig()
             
-        self.conf['general']['activeformat'] = " ".join(details['splitmsg'])
+        conf['general']['activeformat'] = details['fullmsg'].partition(" ")[2]
         
-        self.conf.write()
+        conf.write()
         
         return True
     
     @Base.trigger("SETPASSFMT")
     def on_setpassfmt(self, bot, user, details):
         """SETPASSFMT <string> - Set the template to use when triggering a lookup when someone mentions #<id>"""
-        
         if not user.hasPerm('redmine.setformat'):
             raise InsuffPerms
         
         if not details['splitmsg']:
             raise BadParams
         
-        self.conf.reload()
-        
-        if not 'general' in self.conf:
-            self.conf['general'] = {}
+        conf = self.getConfig()
             
-        self.conf['general']['passiveformat'] = " ".join(details['splitmsg'])
+        conf['general']['passiveformat'] = details['fullmsg'].partition(" ")[2]
         
-        self.conf.write()
+        conf.write()
         
         return True
         
@@ -118,24 +166,46 @@ class Plugin(Base): # Must subclass Base
         except Exception:
             raise BadParams
         
-        url = self.conf['general']['redmineurl']
-        fmt = self.conf['general']['activeformat']
-        return getIssue(url, issueid, fmt)
+        conf = self.getConfig()['general']
+        url = conf['redmineurl']
+        fmt = conf['activeformat']
+        
+        try:
+            return getIssue(url, issueid, fmt, conf)
+        except urllib2.HTTPError as e:
+            if e.getcode() == 404:
+                return "That bug/issue number does not exist!"
+            else:
+                return "Encountered %d error while fetching data." % e.getcode()
         
     @Base.event("PRIVMSG")
     def on_privmsg(self, bot, command, prefix, params):
         target = params[0]
+        
         if target == bot.nick():
             target = prefix.split("!")[0]
             
         msg = params[1]
-        m = re.findall("(#(\d+))+", msg)
+        conf = self.getConfig()['general']
+        pat = conf['passiveregex']
+        match = re.findall(pat, msg)
+        url = conf['redmineurl']
         
-        url = self.conf['general']['redmineurl']
-        fmt = self.conf['general']['passiveformat']
-        
-        if m:
-            issues = [getIssue(url, x[1], fmt) for x in m]
-            bot.sendResult(" ".join(issues), target)
+        if match:
+            if prefix.split("!")[0] in conf['activetriggerers']:
+                fmt = conf['activeformat']
+            else:
+                fmt = conf['passiveformat']
                 
-        
+            for x in match:
+                try:
+                    bot.sendResult(getIssue(url, x, fmt, conf), target)
+                except urllib2.HTTPError as e:
+                    pass
+                    #if e.code == 404:
+                    #    bot.sendResult("The bug/issue number %s does not exist!" % x, target)
+                    #else:
+                    #    bot.sendResult("Encountered %d error while fetching data." % e.code, target)
+                except ValueError as e:
+                    bot.sendResult(r"Possible bad regex for passive redmine bug trigger. There should only be one captured group, capturing only digits. An example is (?:bugs?\s*)?#(\d+). The current is %s." % pat, target)
+    

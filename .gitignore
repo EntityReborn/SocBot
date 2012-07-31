@@ -1,4 +1,7 @@
 *.pyc
 *.pyd
+*.pyo
 .idea
 conf/*.pid
+*.db
+*.conf

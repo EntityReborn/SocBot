@@ -1,11 +1,10 @@
 import logging
 import os, sys
-import traceback
 from collections import defaultdict
 
 from configobj import ConfigObj
-
 from socbot.tools import validateConfig
+
 import pluginbase
 
 log = logging.getLogger('pluginmanager')
@@ -26,6 +25,10 @@ class PluginTracker(object):
         self.filename = filename
         self._instance = None
         self._env = {}
+        self.log = log
+    
+    def getDataDir(self):
+        return self.core.sstate['config']['directories']['plugindata']
         
     def hasTrigger(self, trig):
         return trig.upper() in self.triggers.keys() and self.triggers[trig.upper()]
@@ -113,7 +116,7 @@ class PluginTracker(object):
             name = self.info["general"]["name"]
 
             if self.info["general"]["enabled"]:
-                self._instance = klass(self, self.info, self.core.sstate['users'])
+                self._instance = klass(self, self.info)
                 self._env = env
                 self._instance._initTrigs()
             else:
@@ -185,6 +188,7 @@ class PluginCore(object):
     """A class in charge of managing the lifetime of a plugin"""
     def __init__(self, sstate, moduledir="plugins"):
         self.sstate = sstate
+        self.log = log
         self.moduledir = os.path.abspath(moduledir)
         self.plugintrackers = {}
 
@@ -362,7 +366,7 @@ class PluginCore(object):
         infos = list(os.path.join(self.moduledir, m) for m in filelist if m.endswith(".info"))
         log.debug("found infos: %s" % ", ".join(infos))
         
-        spec = "%s/plugin.spec" % self.moduledir
+        spec = "conf/plugin.spec"
 
         for infofile in infos:
             info = ConfigObj(infofile, configspec=spec)
