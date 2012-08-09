@@ -5,11 +5,10 @@ import logging
 from twisted.internet import reactor
 from twisted.application import internet
 
-from socbot.config import ConfigObj
+from socbot.config import ConfigurationFile
 
 from socbot.core import BotFactory
 from socbot.plugincore import PluginCore
-from socbot.tools import validateConfig
 from socbot.log import addLogger
 from socbot import process
 
@@ -29,16 +28,15 @@ class main(object):
 
         return True
 
-    def loadConfig(self):
-        log.info("loading bot config from {0}".format("conf/socbot.conf"))
+    def loadConfig(self, filename="conf/socbot.conf", spec="conf/config.spec"):
+        log.info("loading bot config from {0}".format(filename))
 
-        self.config = ConfigObj("conf/socbot.conf", configspec="conf/config.spec",
-            unrepr=True)
-
-        invalid = validateConfig(self.config)
-        if invalid:
+        self.config = ConfigurationFile(filename, configspec=spec, unrepr=True)
+        
+        errors = self.config.isValid()
+        if errors:
             log.error("Error in config:")
-            log.error('\n'.join(invalid))
+            log.error('\n'.join(errors))
             
             return False
         
@@ -48,7 +46,7 @@ class main(object):
             if not os.path.exists(d):
                 os.makedirs(d)
 
-        return True
+        return self.config
 
     def loadPlugs(self):
         log.info("starting pluginmanager and loading plugins")
@@ -58,13 +56,15 @@ class main(object):
         
         pm.loadPlugins()
         pm.initPlugins()
+        
+        return pm
 
     def run(self):
         if "servers" in self.config:
             for name, config in self.config["servers"].iteritems():
                 f = BotFactory(name, config, self.sstate, self)
                 self.factories[name.lower()] = f
-
+                
                 botService = internet.TCPClient(config["host"], config["port"], f)
                 log.info("Connecting to {0} ({1})".format(name, config["host"]))
                 botService.startService()

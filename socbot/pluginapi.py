@@ -42,20 +42,37 @@ class API(object):
     def leave(self, channel, msg="Good-bye."):
         channel = channel.lower()
         config = self.serverConfig()
+        
+        if channel in config['channels']:
+            config['channels']['channels']['autojoin'] = False
+            
+            self.saveConfig()
 
         self.connection.leave(channel, msg)
 
     def sendLine(self, line):
         self.connection.sendLine(line)
+    
+    def msg(self, target, msg, revd=False):
+        # revd is for use when calling from a deferred.
+        if not revd:
+            self.connection.msg(target, msg)
+        else: 
+            self.connection.msg(msg, target)
+            
+    def notice(self, target, msg, revd=False):
+        # revd is for use when calling from a deferred.
+        if not revd:
+            self.connection.notice(target, msg)
+        else:
+            self.connection.notice(msg, target)
         
-    def msg(self, target, msg):
-        self.connection.msg(target, msg)
-        
-    def notice(self, target, msg):
-        self.connection.notice(target, msg)
-        
-    def action(self, target, msg):
-        self.connection.msg(target, u'\x01ACTION %s\x01'%msg)
+    def action(self, target, msg, revd=False):
+        # revd is for use when calling from a deferred.
+        if not revd:
+            self.connection.msg(target, u'\x01ACTION %s\x01'%msg)
+        else:
+            self.connection.msg(u'\x01ACTION %s\x01'%msg, target)
     
     def onCommand(self, command, prefix, params):
         self.log.debug("command `{0}`, from prefix `{1}`".format(
@@ -99,14 +116,14 @@ class API(object):
 
     def onPrivmsg(self, user, channel, msg):
         msg = msg.strip()
-        nick, hostmask = user.split("!")
+        nick = user.split("!")[0]
         wasprivate = False
 
         if not msg:
             return
 
         match = re.search('^[ ]*{0}[:,][ ]*(.*)$'.format(self.connection.nickname.lower()), msg)
-
+        
         if channel.lower() != self.connection.nickname.lower():
             if match and self.generalConfig()['nicktrigger'].lower() == 'true':
                 msg = match.group(1)
@@ -119,26 +136,24 @@ class API(object):
         if msg[0] in self.generalConfig()['commandchars']:
             msg = msg[1:]
                 
-        split = msg.split()
+        parts = msg.partition(" ")
+        split = parts[2].split()
+        trigger = parts[0].upper()
         
-        if not split:
+        if not trigger:
             return
         
-        trigger = split[0].upper()
-        
         usr = self.users.getUser(nick.lower())
-        splitmsg = msg.split()
         
         details = {
             "fullmsg": msg,
             "fulluser": user,
-            "splitmsg": splitmsg,
-            "trigger": splitmsg.pop(0).lower(),
+            "splitmsg": split,
+            "trigger": trigger.lower(),
             "channel": channel.lower(),
             "wasprivate": wasprivate
         }
         
-        result = None
         func = self.plugins.getTrigger(trigger)
             
         if func:
@@ -147,29 +162,37 @@ class API(object):
             try:
                 d = maybeDeferred(func, self, usr, details)
                 d.addCallback(self.sendResult, channel)
-                d.addErrback(self.sendError, channel, func)
-            except Exception, e:
+                d.addErrback(self.sendError, channel, func, nick)
+            except Exception:
                 self.log.exception("General exception")
         else:
             self.plugins.triggerEvent("TRIG_UNKNOWN", self, usr, details)
             
-    def sendError(self, err, target, func):
+    def sendError(self, err, target, func, nick):
         err.trap(InsuffPerms, BadParams, Exception)
         if err.type == BadParams:
             self.connection.msg(target, func.__doc__)
         elif err.type == InsuffPerms:
-            self.connection.msg(target, "Insufficient permissions (%s). Did you forget to log in?" % err.value.args[0])
+            notificationtype = self.generalConfig()['permerrornotification']
+            message = "Insufficient permissions (%s). Did you forget to log in?" % err.value.args[0]
+            
+            if notificationtype == "NOTICE":
+                self.notice(nick, message)
+            elif notificationtype == "CHANNEL":
+                self.msg(target, message)
+            elif notificationtype == "PM":
+                self.msg(nick, message)
         else:
             self.log.error(err.getTraceback())
-            self.connection.msg(target, "Exception in plugin function {0} ({1}). ".format(func.__name__, err.getErrorMessage()) + \
-                    "Please check the logs.")
+            self.msg(target, "Exception in plugin function {0} ({1}). ".format(func.__name__, err.getErrorMessage()) + \
+                    "Please check the logs or notify someone who manages me.")
                 
     def sendResult(self, msg, target):
         if msg:
             if msg == True:
                 msg = "Done."
-        
-        self.connection.msg(target, str(msg))
+            
+            self.msg(target, str(msg))
             
     def name(self):
         return self.connection.factory.name
@@ -181,7 +204,6 @@ class API(object):
         return self.baseConfig()['general']
     
     def baseConfig(self):
-        self.reloadConfig()
         return self.connection.factory.core.config
         
     def saveConfig(self):
@@ -189,3 +211,4 @@ class API(object):
         
     def reloadConfig(self):
         self.connection.factory.core.config.reload()
+        self.connection.factory.core.config.isValid()

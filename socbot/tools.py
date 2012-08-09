@@ -1,6 +1,3 @@
-from configobj import flatten_errors
-from validate import Validator
-
 import re, string
 
 class CaselessDict:
@@ -123,17 +120,3 @@ def isSameNick(nick1, nick2):
     nick1 = nick1.lower()
     nick2 = nick2.lower()
     return nick1 == nick2
-
-def validateConfig(config):
-    validator = Validator()
-    results = config.validate(validator, preserve_errors=True)
-    errors = list()
-
-    if results != True:
-        for (section_list, key, exc) in flatten_errors(config, results):
-            if key is not None:
-                errors.append('\t"%s" in "%s" failed validation. (%s)' % (key, ', '.join(section_list), exc))
-            else:
-                errors.append('\tThe following sections were missing:%s ' % ', '.join(section_list))
-
-    return errors

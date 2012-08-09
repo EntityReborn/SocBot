@@ -6,7 +6,7 @@ from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Protocol
 from twisted.web.client import Agent, RedirectAgent
 
-titlepattern = re.compile(r"\b(?P<pro>https?://)?(?P<url>.*?\.[-A-Z0-9+&@#/%=~_|$?!:,.]*[A-Z0-9+&@#/%=~_|$])", re.IGNORECASE)
+titlepattern = re.compile(r"\b(?P<pro>https?://)(?P<url>.*?\.[-A-Z0-9+&@#/%=~_|$?!:,.]*[A-Z0-9+&@#/%=~_|$])", re.IGNORECASE)
 
 from socbot.pluginbase import Base, BadParams
 
@@ -16,8 +16,8 @@ class DeferredPrinter(Protocol):
         self.url = url
         self.data = ""
 
-    def dataReceived(self, bytes):
-        self.data += bytes
+    def dataReceived(self, b):
+        self.data += b
 
     def connectionLost(self, reason):
         title = BeautifulSoup(self.data).title
@@ -59,6 +59,7 @@ class Plugin(Base):
         
     @Base.trigger("TIT", "TITLE")
     def on_title(self, bot, user, details):
+        """TITLE [url] - If provided, prints the title of url. If not, prints the title of the last mentioned url."""
         if not len(details['splitmsg']):
             if not bot in self.bots:
                 return "No URL has been said recently."
@@ -69,14 +70,15 @@ class Plugin(Base):
             url = self.bots[bot][details['channel'].lower()]
         else:
             url = details['splitmsg'][0]
+            
             match = titlepattern.match(url)
             
             if not match:
-                return "Oops, try a valid url!"
-            
-            pro = match.group('pro')
-            if not pro:
                 url = "http://" + url
+                match = titlepattern.match(url)
+            
+            if not match:
+                return "Oops, try a valid url!"
 
         try:
             agent = RedirectAgent(Agent(reactor))
@@ -97,25 +99,25 @@ class Plugin(Base):
         
     @Base.trigger("UP", "DOWN", "ISUP", "ISDOWN")
     def on_up(self, bot, user, details):
+        """ISUP http://<url> - Check to see if the webserver at url is up and kicking."""
         if len(details['splitmsg']):
             url = details['splitmsg'][0]
             
             match = titlepattern.match(url)
             
             if not match:
+                url = "http://" + url
+                match = titlepattern.match(url)
+                
+            if not match:
                 return "Oops, try a valid url!"
             
-            pro = match.group('pro')
-            
-            if not pro:
-                url = "http://" + url
-            else:
-                url = pro + url
-            
-            d = agent = Agent(reactor)
+            agent = Agent(reactor)
             d = agent.request('GET', url)
             
             d.addCallback(lambda *x: "She's alive! (%s)" % url)
             d.addErrback(lambda *x: "She's dead, Jim. :( (%s)" % url)
             
             return d
+        else:
+            raise BadParams

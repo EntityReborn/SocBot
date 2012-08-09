@@ -20,6 +20,8 @@ class Plugin(Base):
         
         bot.setNick(details['splitmsg'][0])
         
+        return True
+        
     @Base.trigger("MSG")
     def on_msg(self, bot, user, details):
         """MSG <target> <msg> - Send <msg> to <target>"""

@@ -91,17 +91,23 @@ class Connection(irc.IRCClient):
         channel = channel.lower()
         
         if self.api.onPrivmsg(user, channel, msg):
-            irc.IRCClient.privmsg(self, user, channel, message)
+            irc.IRCClient.privmsg(self, user, channel, msg)
         
     def handleCommand(self, command, prefix, params):
         if self.api.onCommand(command, prefix, params):
             irc.IRCClient.handleCommand(self, command, prefix, params)
         
-    def msg(self, target, message, length=irc.MAX_COMMAND_LENGTH):
+    def msg(self, target, message, length=400):
         if not message or not target:
             return
-
-        irc.IRCClient.msg(self, target, message, length)
+            
+        irc.IRCClient.msg(self, target, str(message), length)
+            
+    def notice(self, target, message, length=400):
+        if not message or not target:
+            return
+        
+        irc.IRCClient.notice(self, target, str(message), length)
         
     #===== Lifetime Control =====
     

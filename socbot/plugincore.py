@@ -2,8 +2,7 @@ import logging
 import os, sys
 from collections import defaultdict
 
-from configobj import ConfigObj
-from socbot.tools import validateConfig
+from socbot.config import ConfigurationFile
 
 import pluginbase
 
@@ -91,13 +90,13 @@ class PluginTracker(object):
     def preReload(self):
         try:
             self._instance.preReload()
-        except Exception, e:
+        except Exception:
             log.exception("Exception unloading plugin %s" % self.filename)
             
     def postReload(self):
         try:
             self._instance.postReload()
-        except Exception, e:
+        except Exception:
             log.exception("Exception unloading plugin %s" % self.filename)
         
     def load(self):
@@ -105,7 +104,7 @@ class PluginTracker(object):
 
         try:
             execfile(self.filename, env, env)
-        except Exception, ex:
+        except Exception:
             log.exception("Exception loading plugin in {0}".format(self.filename))
             return
 
@@ -133,7 +132,7 @@ class PluginTracker(object):
         
         try:
             self._instance.finalize()
-        except Exception, e:
+        except Exception:
             log.exception("Exception unloading plugin %s" % self.filename)
 
         self.triggers = {}
@@ -141,7 +140,6 @@ class PluginTracker(object):
         
         del self._env
         del self._instance
-        
         
     def reload(self):
         self.preReload()
@@ -369,8 +367,8 @@ class PluginCore(object):
         spec = "conf/plugin.spec"
 
         for infofile in infos:
-            info = ConfigObj(infofile, configspec=spec)
-            errors = validateConfig(info)
+            info = ConfigurationFile(infofile, configspec=spec)
+            errors = info.isValid()
 
             if errors:
                 line = ", ".join(errors)

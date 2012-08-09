@@ -1,44 +1,81 @@
 from socbot.pluginbase import Base, BadParams, InsuffPerms
 
 import urllib2, json, re
-from cookielib import CookieJar
+
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred
+from twisted.internet.protocol import Protocol
+from twisted.web.client import Agent, RedirectAgent
+from twisted.web.http_headers import Headers
+
+class DeferredPrinter(Protocol):
+    def __init__(self, finished, baseurl, num, template):
+        self.finished = finished
+        self.baseurl = baseurl
+        self.num = num
+        self.template = template
+        self.data = ""
+
+    def dataReceived(self, b):
+        self.data += b
+
+    def connectionLost(self, reason):
+        if "<title>503 Service Temporarily Unavailable</title>" in self.data:
+            self.finished.callback("Looks like the redmine server is down!")
+            return
+        
+        try:
+            j = json.loads(self.data)['issue']
+        except ValueError, e:
+            self.finished.callback("Could not parse data. (%s)" % e)
+            return
+            
+        project = j['project']['name']
+        author = j['author']['name']
+        date = j['start_date']
+        tracker = j['tracker']['name']
+        status = j['status']['name']
+        subject = j['subject']
+        url = "%s/%s" % (self.baseurl, self.num)
+        
+        retn = self.template.format(
+            project=project,
+            author=author,
+            date=date,
+            tracker=tracker,
+            status=status,
+            subject=subject,
+            url=url
+        )
+        
+        self.finished.callback(retn)
+        return
 
 def getIssue(baseurl, num, template, conf):
     if baseurl.endswith("/"):
         baseurl = baseurl[:-1]
-
-    jar = CookieJar()
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(jar))
     
     cookiesession = conf['cookie']
     
-    opener.addheaders = [
-        ('User-agent', 'Mozilla/5.0'),
-        ("Cookie", cookiesession)
-    ]
-
-    connection = opener.open('%s/%s.json' % (baseurl, num))
-
-    data = connection.read()
-    j = json.loads(data)['issue']
+    headers = {
+        'User-agent': ['Mozilla/5.0',],
+        "Cookie": [cookiesession,]
+    }
     
-    project = j['project']['name']
-    author = j['author']['name']
-    date = j['start_date']
-    tracker = j['tracker']['name']
-    status = j['status']['name']
-    subject = j['subject']
-    url = "%s/%s" % (baseurl, num)
+    url = "%s/%s.json"%(baseurl, num)
     
-    return template.format(
-        project=project,
-        author=author,
-        date=date,
-        tracker=tracker,
-        status=status,
-        subject=subject,
-        url=url
-    )
+    agent = RedirectAgent(Agent(reactor))
+    headers = Headers(headers)
+    d = agent.request('GET', url, headers=headers)
+    
+    def cbRequest(response):
+        finished = Deferred()
+        response.deliverBody(DeferredPrinter(finished, baseurl, num, template))
+        
+        return finished
+    
+    d.addCallback(cbRequest)
+    return d
 
 class Plugin(Base): # Must subclass Base
     @Base.trigger("REDURL")
@@ -197,15 +234,4 @@ class Plugin(Base): # Must subclass Base
             else:
                 fmt = conf['passiveformat']
                 
-            for x in match:
-                try:
-                    bot.sendResult(getIssue(url, x, fmt, conf), target)
-                except urllib2.HTTPError as e:
-                    pass
-                    #if e.code == 404:
-                    #    bot.sendResult("The bug/issue number %s does not exist!" % x, target)
-                    #else:
-                    #    bot.sendResult("Encountered %d error while fetching data." % e.code, target)
-                except ValueError as e:
-                    bot.sendResult(r"Possible bad regex for passive redmine bug trigger. There should only be one captured group, capturing only digits. An example is (?:bugs?\s*)?#(\d+). The current is %s." % pat, target)
-    
+            getIssue(url, match[0], fmt, conf).addCallback(bot.msg, target, True)

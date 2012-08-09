@@ -1,6 +1,30 @@
 from configobj import ConfigObj, Section
+from configobj import flatten_errors
+from validate import Validator
 
 class PathDoesntExist(Exception): pass
+
+class ConfigurationFile(ConfigObj):
+    def __init__(self, *args, **kwargs):
+        ConfigObj.__init__(self, *args, **kwargs)
+        self.specfile = None
+        
+        if "configspec" in kwargs:
+            self.specfile = kwargs['configspec']
+            
+    def isValid(self, **kwargs):
+        validator = Validator()
+        results = ConfigObj.validate(self, validator, preserve_errors=True, **kwargs)
+        errors = list()
+    
+        if results != True:
+            for (section_list, key, exc) in flatten_errors(self, results):
+                if key is not None:
+                    errors.append('\t"%s" in "%s" failed validation. (%s)' % (key, ', '.join(section_list), exc))
+                else:
+                    errors.append('\tThe following sections were missing:%s ' % ', '.join(section_list))
+    
+        return errors
 
 def root(self):
     if self.parent == self:

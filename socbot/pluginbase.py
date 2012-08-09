@@ -1,8 +1,7 @@
 from inspect import getmembers, ismethod
 import os
 
-from socbot.config import ConfigObj
-from socbot.tools import validateConfig
+from socbot.config import ConfigurationFile
 
 class InsuffPerms(Exception):
     """The user does not have the required permissions"""
@@ -35,16 +34,16 @@ class Base(object):
     def getConfig(self):
         if self.info['general']['usesconfig']:
             if self.info['general']['usesconfspec']:
-                conf = ConfigObj('%s/config.conf' % self._datadir, configspec="plugins/%s.spec" % self.info['general']['name'].lower())
+                conf = ConfigurationFile('%s/config.conf' % self._datadir, configspec="plugins/%s.spec" % self.info['general']['name'].lower())
 
-                invalid = validateConfig(conf)
-                if invalid:
+                errors = conf.isValid()
+                if errors:
                     self.manager.log.error("Error in config for %s:" % self.info['general']['name'])
-                    self.manager.log.error('\n'.join(invalid))
+                    self.manager.log.error('\n'.join(errors))
                     
                     raise InvalidConfig
             else:
-                conf = ConfigObj('%s/config.conf' % self._datadir)
+                conf = ConfigurationFile('%s/config.conf' % self._datadir)
         else:
             raise DoesntUseConfig
         

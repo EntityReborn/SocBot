@@ -154,7 +154,7 @@ class RegisteredUser(Base):
         return False
     
     def hasHostmask(self, hostmask):
-        return hostmask.lower() in self.hostmasks.lower()
+        return hostmask.lower() in self.hostmasks
     
 emailpat = re.compile(r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?", re.IGNORECASE)
 

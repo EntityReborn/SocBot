@@ -37,17 +37,25 @@ class SimpleResponseTestCase(unittest.TestCase):
     def setUp(self):
         self.proto = Connection()
         self.users = UserDB()
-        self.manager = PluginCore({"users": self.users}, 'socbot/tests/plugins')
+        self.sstate = {
+            "users":self.users,
+            "config": {
+                "directories": {
+                    "plugindata": "."
+                }                      
+            }
+        }
+        self.manager = PluginCore(self.sstate, 'socbot/tests/plugins')
         self.api = API(self.proto, self.users, self.manager)
         
         self.manager.plugintrackers = self.manager.findPlugins()
         
     def addRegUser(self, name, email, perms, hostmask):
         user = self.users.getUser(name)
-        user.register(name, password, email)
+        user.register(name, 'password', email)
         
     def testStaticResponse(self):
-        self.manager.enablePlugin('simple')
+        self.manager.enablePlug('simple')
         
         func = self.manager.getTrigger("respondstatic")
         retn = func(self.api, None, None)
@@ -55,7 +63,7 @@ class SimpleResponseTestCase(unittest.TestCase):
         assert retn == "Pong!!!"
         
     def testInputResponse(self):
-        self.manager.enablePlugin('simple')
+        self.manager.enablePlug('simple')
         
         func = self.manager.getTrigger("respondinput")
         retn = func(self.api, None, "something")
@@ -63,7 +71,7 @@ class SimpleResponseTestCase(unittest.TestCase):
         assert retn == "something"
         
     def testDirectResponse(self):
-        self.manager.enablePlugin('simple')
+        self.manager.enablePlug('simple')
         
         func = self.manager.getTrigger("responddirect")
         retn = func(self.api, None, "something")
@@ -72,7 +80,7 @@ class SimpleResponseTestCase(unittest.TestCase):
         assert ("user", "direct msg") in self.proto.sentmsgs
         
     def testDisableTrigger(self):
-        self.manager.enablePlugin('simple')
+        self.manager.enablePlug('simple')
         
         func = self.manager.getTrigger("trigdisable")
         retn = func(self.api, None, "something")
@@ -89,14 +97,14 @@ class SimpleResponseTestCase(unittest.TestCase):
         assert func == False
         
     def testDisableEvent(self):
-        self.manager.enablePlugin('simple')
+        self.manager.enablePlug('simple')
         
         assert self.manager.triggerEvent("eventdisable", self.api, None, "")
         assert self.manager.triggerEvent("eventdisable", self.api, None, "disable")
         assert not self.manager.triggerEvent("eventdisable", self.api, None, "disable")
         
     def testReload(self):
-        self.manager.enablePlugin('simple')
+        self.manager.enablePlug('simple')
         
         id1 = id(self.manager.getTrigger("respondstatic"))
         assert id(self.manager.getTrigger("respondstatic")) == id1
