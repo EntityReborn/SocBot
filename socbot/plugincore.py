@@ -14,10 +14,13 @@ class PluginAlreadyLoaded(Exception): pass
 class PluginNotLoaded(Exception): pass
 class UnregisterEvent(Exception): pass
 class UnregisterTrigger(Exception): pass
+class UnregisterPrefilter(Exception): pass
 
 class PluginTracker(object):
     def __init__(self, core, info, filename):
         self.core = core
+        self.msgprefilters = []
+        self.eventprefilters = []
         self.events = defaultdict(list)
         self.triggers = {}
         self.info = info
@@ -34,6 +37,12 @@ class PluginTracker(object):
     
     def hasEvent(self, event):
         return event.upper() in self.events.keys() and self.events[event.upper()]
+    
+    def getEventPreFilters(self):
+        return sorted(self.eventprefilters)
+    
+    def getMsgPreFilters(self):
+        return sorted(self.msgprefilters)
     
     def getTrigger(self, trig):
         trig = trig.upper()
@@ -156,6 +165,18 @@ class PluginTracker(object):
         for trig in triggers:
             self.triggers[trig.upper()] = func
             
+    def registerMsgPreFilter(self, pluginname, func, priority):
+        log.debug("registering '{0}' for msg prefilters with priority {1}".format(
+            func.__name__, func.priority))
+        
+        self.msgprefilters.append([func.priority, func])
+        
+    def registerEventPreFilter(self, pluginname, func, priority):
+        log.debug("registering '{0}' for event prefilters with priority {1}".format(
+            func.__name__, func.priority))
+        
+        self.eventprefilters.append([func.priority, func])
+        
     def registerEvent(self, pluginname, func, *events):
         eventline = ", ".join(events)
         log.debug("registering '{0}' for events '{1}'".format(
@@ -192,6 +213,22 @@ class PluginCore(object):
 
         log.debug("PluginManager instantiated with '{0}' for "
             "moduledir.".format(self.moduledir))
+        
+    def getMsgPrefilters(self):
+        flt = list()
+        
+        for tracker in self.plugintrackers.values():
+            flt += tracker.getMsgPreFilters()
+            
+        return [x[1] for x in sorted(flt)]
+    
+    def getEventPrefilters(self):
+        flt = list()
+        
+        for tracker in self.plugintrackers.values():
+            flt += tracker.getEventPreFilters()
+            
+        return [x[1] for x in sorted(flt)]
         
     def getAllTriggers(self):
         trigs = list()

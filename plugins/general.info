@@ -2,7 +2,5 @@
 name = General# human friendly name
 modulefile = general.py# Actual module to import to load plugins
 enabled = True
-
-[permissions]
-join = normal
-part = normal
+usesconfig = True
+usesconfspec = True

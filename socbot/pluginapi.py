@@ -1,8 +1,7 @@
 import re
 
-from socbot.plugincore import MultipleTriggers
 from socbot.userdb import UnknownHostmask, NoSuchUser
-from socbot.pluginbase import InsuffPerms, BadParams
+from socbot.pluginbase import InsuffPerms, BadParams, StopProcessing
 from twisted.internet.defer import maybeDeferred
 
 class API(object):
@@ -102,9 +101,20 @@ class API(object):
                 usr.joined(self, params[-1])
             elif command == 'PART':
                 usr.parted(self, params[0])
+                
+        trigger = True 
+        
+        for flt in self.plugins.getEventPrefilters():
+            try:
+                flt(self, command, prefix, params)
+            except StopProcessing:
+                trigger = False
+            except Exception:
+                self.log.exception("General exception")
             
-        self.plugins.triggerEvent(command,
-            self, command, prefix, params)
+        if trigger:
+            self.plugins.triggerEvent(command,
+                self, command, prefix, params)
         
         if command == 'QUIT':
             usrname = prefix.split("!")[0].lower()
@@ -154,6 +164,21 @@ class API(object):
             "wasprivate": wasprivate
         }
         
+        prefilters = self.plugins.getMsgPrefilters()
+        
+        for func in prefilters:
+            try:
+                retn = func(self, usr, details)
+                
+                if retn and isinstance(retn, dict):
+                    details = retn
+                    
+            except StopProcessing:
+                return
+                    
+            except Exception:
+                self.log.exception("General exception")
+                
         func = self.plugins.getTrigger(trigger)
             
         if func:

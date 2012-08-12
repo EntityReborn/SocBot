@@ -3,6 +3,14 @@ import os
 
 from socbot.config import ConfigurationFile
 
+class Priority():
+    FIRST = 0
+    NORMAL = 128
+    LAST = 255
+    
+class StopProcessing(Exception):
+    """Stop next processing steps. (Basically, to allow ignoring.)"""
+
 class InsuffPerms(Exception):
     """The user does not have the required permissions"""
 
@@ -72,7 +80,27 @@ class Base(object):
             return func
         
         return call
-
+    
+    @classmethod
+    def msgprefilter(cls, priority=Priority.NORMAL):
+        def call(func):
+            func.type = "msgprefilter"
+            func.priority = priority
+            
+            return func
+        
+        return call
+    
+    @classmethod
+    def eventprefilter(cls, priority=Priority.NORMAL):
+        def call(func):
+            func.type = "eventprefilter"
+            func.priority = priority
+            
+            return func
+        
+        return call
+    
     @classmethod
     def event(cls, *triggers):
         def call(func):
@@ -90,11 +118,15 @@ class Base(object):
         for funcdata in members:
             func = funcdata[1]
             
-            if ismethod(func) and hasattr(func, "triggers"):
+            if ismethod(func) and hasattr(func, "type"):
                 if func.type == "event":
                     self.manager.registerEvent(name, func, *func.triggers)
-                else:
+                elif func.type == "trigger":
                     self.manager.registerTrigger(name, func, *func.triggers)
+                elif func.type == "msgprefilter":
+                    self.manager.registerMsgPreFilter(name, func, func.priority)
+                elif func.type == "eventprefilter":
+                    self.manager.registerEventPreFilter(name, func, func.priority)
     
     def blockEvent(self):
         self.manager._event_blocked = True
