@@ -43,7 +43,7 @@ class API(object):
         config = self.serverConfig()
         
         if channel in config['channels']:
-            config['channels']['channels']['autojoin'] = False
+            config['channels'][channel]['autojoin'] = False
             
             self.saveConfig()
 

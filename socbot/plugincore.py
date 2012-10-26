@@ -128,11 +128,11 @@ class PluginTracker(object):
                 self._env = env
                 self._instance._initTrigs()
             else:
-                log.info("plugin {0} is disabled in it's config. Not instantiating it.".format(
+                log.info("Plugin `{0}` is disabled in it's config. Not instantiating it.".format(
                     name))
 
         else:
-            log.warning("Class 'Plugin' doesn't exist in module {0}, ".format(self.filename) + \
+            log.warning("Class 'Plugin' doesn't exist in module `{0}`, ".format(self.filename) + \
                 "or it doesn't subclass the defined baseclass.")
     
     def unload(self):
@@ -142,7 +142,7 @@ class PluginTracker(object):
         try:
             self._instance.finalize()
         except Exception:
-            log.exception("Exception unloading plugin %s" % self.filename)
+            log.exception("Exception unloading plugin `%s`" % self.filename)
 
         self.triggers = {}
         self.events = defaultdict(list)

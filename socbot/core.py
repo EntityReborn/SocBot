@@ -107,7 +107,7 @@ class Connection(irc.IRCClient):
         if not message or not target:
             return
         
-        irc.IRCClient.notice(self, target, str(message), length)
+        irc.IRCClient.notice(self, target, str(message))
         
     #===== Lifetime Control =====
     
@@ -124,6 +124,8 @@ class Connection(irc.IRCClient):
     def _doJoins(self):
         if self.factory.config["channels"]:
             for channel, chanconfig in self.factory.config["channels"].iteritems():
+                channel = channel.lower()
+                
                 if not chanconfig["autojoin"]:
                     continue
 
@@ -144,15 +146,17 @@ class Connection(irc.IRCClient):
 
     def joined(self, channel):
         self.log.info("joined " + channel)
+        channel = channel.lower()
         
-        if not channel.lower() in self.channels:
-            self.channels.append(channel.lower())
+        if not channel in self.channels:
+            self.channels.append(channel)
 
     def left(self, channel):
         self.log.info("left " + channel)
+        channel = channel.lower()
         
-        if channel.lower() in self.channels:
-            self.channels.remove(channel.lower())
+        if channel in self.channels:
+            self.channels.remove(channel)
 
 class BotFactory(protocol.ReconnectingClientFactory):
     protocol = Connection

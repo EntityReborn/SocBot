@@ -59,7 +59,7 @@ class Plugin(Base):
     @Base.event("RPL_WHOREPLY")
     def on_who(self, bot, command, prefix, params):
         mynick = params[0]
-        channel = params[1]
+        channel = params[1].lower()
         username = params[2]
         host = params[3]
         server = params[4]
@@ -108,8 +108,9 @@ class Plugin(Base):
             return BadParams
         
         userdata = bot.users.getUser(user.lower())
+        modes = userdata.channels[channel].modes
         
-        if "@" in userdata.channels[channel].modes:
+        if "@" in modes or "o" in modes:
             return "This user is an op!"
         else:
             return "This user is not an op!"
@@ -178,9 +179,72 @@ class Plugin(Base):
 
         return "Welcome to the club!"
     
+    @Base.trigger("SETPASS")
+    def on_setpass(self, bot, user, details):
+        """SETPASS <username> <password> - Change a user's password"""
+        parts = details["splitmsg"]
+
+        if not details["wasprivate"]:
+            return "OOPS! Please privmsg me to change passwords!"
+        
+        if not user.hasPerm('users.setpass'):
+            raise InsuffPerms, "users.setpass"
+        
+        if len(parts) != 2:
+            raise BadParams
+        
+        user = parts.pop(0)
+        pass_ = parts.pop(0)
+        
+        try:
+            usr = bot.users.getUserInfo(user.lower())
+        except NoSuchUser:
+            return "Unknown user."
+            
+        usr.setPassword(pass_)
+
+        return True
+    
+    @Base.trigger("CHANGEPASS")
+    def on_changepass(self, bot, user, details):
+        """CHANGEPASS <oldpass> <newpass> - Change your password"""
+        parts = details["splitmsg"]
+
+        if not details["wasprivate"]:
+            return "OOPS! Please privmsg me to change passwords!"
+
+        if len(parts) != 2:
+            raise BadParams
+        
+        old = parts.pop(0)
+        new = parts.pop(0)
+        
+        try:
+            user.changePassword(old, new)
+        except BadPass, e:
+            return "The old password you entered is incorrect."
+        except UserNotLoggedIn, e:
+            return "You need to login!"
+
+        return True
+    
     @Base.trigger("ADDMASK")
     def in_addmask(self, bot, user, details):
         nick, hostmask = details['fulluser'].split("!")
+        parts = details["splitmsg"]
+        
+        if parts:
+            if not user.hasPerm('users.addmask.other'):
+                raise InsuffPerms, "users.addmask.other"
+            
+            usr = parts.pop(0)
+            
+            try:
+                user = bot.users.getUserInfo(usr.lower())
+            except NoSuchUser:
+                return "Unknown user."
+            
+            hostmask = user.hostmask
         
         try:
             user.addHostmask(hostmask)
@@ -188,7 +252,7 @@ class Plugin(Base):
             return "You need to login!"
         
         return True
-    
+            
     @Base.trigger("REMMASK")
     def in_remmask(self, bot, user, details):
         nick, hostmask = details['fulluser'].split("!")

@@ -220,8 +220,8 @@ class User(object):
         self.registration = UnregisteredUser()
     
     def joined(self, bot, channel):
-        channel = channel.lower()
-        self.channels[channel].name = channel
+        chan = channel.lower()
+        self.channels[chan].name = chan
         
     def parted(self, bot, channel):
         chan = channel.lower()
@@ -269,13 +269,16 @@ class User(object):
     def nickChanged(self, bot, tonick):
         self.db.nickChanged(bot, self.nick, tonick)
             
+    def setPassword(self, newpass):
+        self.registration.passhash = hashlib.sha1(newpass).hexdigest()
+        self.db.saveSession()
+            
     def changePassword(self, oldpass, newpass):
         if not self.isLoggedIn():
             raise UserNotLoggedIn, self.nick
         
         if hashlib.sha1(oldpass).hexdigest() == self.registration.passhash:
-            self.registration.passhash = hashlib.sha1(newpass).hexdigest()
-            self.db.saveSession()
+            self.setPassword(newpass)
             
             return True
         else:
@@ -354,12 +357,12 @@ class UserDB(object):
             del self.users[nick.lower()]
         
     def joined(self, bot, nick, channel):
-        user = self.getUser(nick)
-        user.joined(bot, channel)
+        user = self.getUser(nick.lower())
+        user.joined(bot, channel.lower())
         
     def parted(self, bot, nick, channel):
-        user = self.getUser(nick)
-        user.parted(bot, channel)
+        user = self.getUser(nick.lower())
+        user.parted(bot, channel.lower())
         
     def nickChanged(self, bot, fromnick, tonick):
         tonick = tonick.lower()
@@ -373,7 +376,7 @@ class UserDB(object):
         
     def modeChanged(self, bot, nick, channel, modes, args):
         user = self.getUser(nick)
-        user.modeChanged(bot, channel, modes, args)
+        user.modeChanged(bot, channel.lower(), modes, args)
         
 if __name__ == "__main__":
     db = UserDB()
