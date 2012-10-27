@@ -120,7 +120,22 @@ class Plugin(Base):
         
         bot.msg(target, msg)
         
-        return True
+        if target.lower() != details['channel'].lower():
+            return True
+    
+    @Base.trigger("SAY")
+    def on_say(self, bot, user, details):
+        """SAY <msg> - Send <msg> to the current channel"""
+        if not user.hasPerm('general.msg'):
+            raise InsuffPerms, "general.msg"
+        
+        if not len(details['splitmsg']):
+            raise BadParams
+        
+        target = details['channel']
+        msg = " ".join(details['splitmsg'])
+        
+        bot.msg(target, msg)
     
     @Base.trigger("RESTART")
     def on_restart(self, bot, user, details):

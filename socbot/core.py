@@ -102,12 +102,23 @@ class Connection(irc.IRCClient):
             return
             
         irc.IRCClient.msg(self, target, str(message), length)
-            
-    def notice(self, target, message):
-        if not message or not target:
+        
+    def notice(self, user, message, length=None):
+        if not message or not user:
             return
         
-        irc.IRCClient.notice(self, target, str(message))
+        fmt = 'NOTICE %s :' % (user,)
+
+        if length is None:
+            length = self._safeMaximumLineLength(fmt)
+
+        # Account for the line terminator.
+        minimumLength = len(fmt) + 2
+        if length <= minimumLength:
+            raise ValueError("Maximum length must exceed %d for message "
+                             "to %s" % (minimumLength, user))
+        for line in irc.split(message, length - minimumLength):
+            self.sendLine(fmt + line)
         
     #===== Lifetime Control =====
     
