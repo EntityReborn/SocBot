@@ -68,9 +68,11 @@ class Plugin(Base): # Must subclass Base
             facts = self.globalmanager.allFacts()
         
         if facts:
-            return ", ".join([f.keyword for f in facts])
-        
-        return "No factoids."
+            retn = ", ".join([f.keyword for f in facts])
+        else:
+            retn = "No factoids."
+            
+        bot.notice(user.username(), retn)
     
     @Base.trigger("?>", "TELLFACT")
     def on_tell(self, bot, user, details):

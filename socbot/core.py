@@ -103,7 +103,7 @@ class Connection(irc.IRCClient):
             
         irc.IRCClient.msg(self, target, str(message), length)
             
-    def notice(self, target, message, length=400):
+    def notice(self, target, message):
         if not message or not target:
             return
         
