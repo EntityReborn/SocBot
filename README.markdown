@@ -14,6 +14,9 @@ designed to be for the ##socialites community of [Freenode][fnirc].
     * [PyWin32][pywin] - If running on windows.
     * [Argparse][pyargparse] - Helpful for parsing commandline stuff.
     * [SQLAlchemy][sqla] - Database management.
+    
+* Website (Optional)
+    * [CherryPy][cherry] - Website functionality.
 
 * Plugins
     * [BeautifulSoup4][bs4] - HTML parsing lib
@@ -40,3 +43,4 @@ See LICENSE or [this page][license].
 [pyargparse]: http://pypi.python.org/pypi/argparse "ArgParse on pypi"
 [bs4]: http://www.crummy.com/software/BeautifulSoup/ "BeautifulSoup 4"
 [sqla]: http://sqlalchemy.org "SQLAlchemy"
+[cherry]: http://cherrypy.org "CherryPy"

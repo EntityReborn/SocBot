@@ -47,10 +47,12 @@ class Plugin(Base): # Must subclass Base
         if len(details['splitmsg']) < 1:
             raise BadParams
         
+        key = details['splitmsg'][0]
+        
         try:
-            response = self.getFact(bot, details['trigger'])    
+            response = self.getFact(bot, key)    
         except factoidbase.NoSuchFactoid, e:
-            response = "No such factoid!"
+            response = "No such factoid! (%s)" % key
         except factoidbase.OrphanedFactoid, e:
             return "Orphaned factoid alias in chain. Not saving. (Orphaned alias is `%s`)" % e
             
@@ -80,10 +82,12 @@ class Plugin(Base): # Must subclass Base
         if len(details['splitmsg']) < 2:
             raise BadParams
         
+        key = details['splitmsg'][1]
+        
         try:
-            response = self.getFact(bot, ['trigger'])
+            response = self.getFact(bot, key) 
         except factoidbase.NoSuchFactoid, e:
-            response = "No such factoid!"
+            response = "No such factoid! (%s)" % key
         except factoidbase.OrphanedFactoid, e:
             return "Orphaned factoid alias in chain. Not saving. (Orphaned alias is `%s`)" % e
             
