@@ -157,6 +157,21 @@ class Connection(irc.IRCClient):
         
         if channel in self.channels:
             self.channels.remove(channel)
+            
+    def kickedFrom(self, channel, kicker, message):
+        self.log.info("kicked from %s by %s (%s)" % (channel, kicker, message))
+        
+        channels = self.factory.config["channels"]
+        
+        if channels:
+            if channel.lower() in channels:
+                chandata = channels[channel.lower()]
+                
+                if chandata['kickedrejoin']:
+                    if chandata["password"]:
+                        self.join(channel, chandata["password"])
+                    else:
+                        self.join(channel)
 
 class BotFactory(protocol.ReconnectingClientFactory):
     protocol = Connection

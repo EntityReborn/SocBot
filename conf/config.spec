@@ -15,6 +15,7 @@
         	[[[[__many__]]]]
         		password = string(default="")
         		autojoin = boolean(default=True)
+        		kickedrejoin = boolean(default=True)
         		
 [directories]
     plugins = string(default="plugins")
