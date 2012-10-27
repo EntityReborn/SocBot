@@ -2,19 +2,19 @@ from socbot.pluginbase import Base, InsuffPerms, BadParams
 from socbot.plugincore import UnregisterEvent
 
 class Plugin(Base):
-    @Base.event("NOTICE")
+    @Base.event("RPL_WELCOME")
     def on_notice(self, bot, command, prefix, params):
-        if "!" in prefix:
-            nick, hostmask = prefix.split("!")
+        try:
+            conf = self.getConfig()
+            nick = conf['general']['nickservnick']
+            pass_ = conf['general']['nickservpass']
             
-            if nick.lower() == "nickserv" and "registered" in params[1]:
-                try:
-                    conf = self.getConfig()
-                    bot.msg('NICKSERV', 'identify %s %s' % (conf['general']['nickservnick'], conf['general']['nickservpass']))
-                except KeyError:
-                    pass
-                
-                raise UnregisterEvent
+            if nick:
+                bot.msg('NICKSERV', 'identify %s %s' % (nick, pass_))
+        except KeyError:
+            pass
+        
+        raise UnregisterEvent
     
     @Base.trigger("NICKSERVSET")
     def on_nsset(self, bot, user, details):
