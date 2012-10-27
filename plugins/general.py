@@ -181,7 +181,6 @@ class Plugin(Base):
     def on_join(self, bot, user, details):
         """JOIN <channel> [key] - Join a channel."""
         parts = details["splitmsg"]
-        command = details["trigger"]
 
         if not user.hasPerm('general.join'):
             raise InsuffPerms, "general.join"
@@ -204,7 +203,6 @@ class Plugin(Base):
     def on_leave(self, bot, user, details):
         """PART <channel> [message] - Leave a channel."""
         parts = details["splitmsg"]
-        command = details["trigger"]
 
         if not user.hasPerm('general.part'):
             raise InsuffPerms, "general.part"

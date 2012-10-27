@@ -2,7 +2,6 @@ from collections import defaultdict
 import datetime, re
 
 from socbot.pluginbase import Base, BadParams
-from socbot.config import ConfigObj
 
 import pastie, seenbase
 
@@ -48,6 +47,7 @@ class UserInfo(object):
 
     def seenLine(self, channel):
         chan = self.channels[channel.lower()]
+        
         type = chan["type"].upper()
         time = chan["timestamp"]
         extra = chan["extra"]
