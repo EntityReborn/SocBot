@@ -67,6 +67,7 @@ class Plugin(Base):
         flags = params[6]
 
         usr = bot.users.getUser(nick)
+        usr.hostmask = username + "@" + host
         usr.channels[channel].modes = flags
 
     @Base.event("JOIN")
@@ -240,12 +241,12 @@ class Plugin(Base):
             usr = parts.pop(0)
             
             try:
-                user = bot.users.getUserInfo(usr.lower())
+                user = bot.users.getRegistration(usr.lower())
             except NoSuchUser:
                 return "Unknown user."
             
-            hostmask = user.hostmask
-        
+            hostmask = bot.users.getUser(usr.lower()).hostmask
+            
         try:
             user.addHostmask(hostmask)
         except UserNotLoggedIn:

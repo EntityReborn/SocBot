@@ -1,5 +1,4 @@
 from socbot.pluginbase import Base, InsuffPerms, BadParams
-from socbot.plugincore import UnregisterEvent
 
 class Plugin(Base):
     @Base.event("RPL_WELCOME")
@@ -13,8 +12,6 @@ class Plugin(Base):
                 bot.msg('NICKSERV', 'identify %s %s' % (nick, pass_))
         except KeyError:
             pass
-        
-        raise UnregisterEvent
     
     @Base.trigger("NICKSERVSET")
     def on_nsset(self, bot, user, details):
