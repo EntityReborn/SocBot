@@ -1,6 +1,6 @@
 import os
 import pastie
-from twisted.internet.utils import getProcessOutput
+from twisted.internet.utils import getProcessOutputAndValue
 
 from socbot.pluginbase import InsuffPerms, Base
 
@@ -22,18 +22,29 @@ class Plugin(Base):
         
         conf = self.getConfig()
         git = conf['general']['git']
-        out = getProcessOutput(git, ["pull",], os.environ)
+        
+        path = bot.connection.factory.sharedstate['basedir']
+        
+        out = getProcessOutputAndValue(git, ["pull",], os.environ, path=path)
         
         def doPaste(data):
-            bot.msg(details['channel'], "Update success, sending results to pastebin...")
-            return pastie.pastie(data, prefix="Update results: ")
+            stdout, stderr, exitcode = data
+            
+            if exitcode == 0:
+                tag = "Success!"
+            else:
+                tag = "Error!"
+                
+            bot.msg(details['channel'], tag + " Sending update results to pastebin...")
+            dat = """SocBot Update Report (%s)
+STDOUT:
+%s
+STDERR:
+%s
+Exit code: %d""" % (tag, stdout, stderr, exitcode)
+                
+            return pastie.pastie(dat, prefix="Update results: ")
         
         out.addCallback(doPaste)
-        
-        def doError(result):
-            bot.msg(details['channel'], "Update error, sending results to pastebin...")
-            return pastie.pastie(str(result), prefix="Update error: ")
-        
-        out.addErrback(doError)
         
         return out
