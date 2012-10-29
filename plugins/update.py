@@ -8,7 +8,7 @@ class Plugin(Base):
     def preReload(self, *args, **kwargs):
         reload(pastie)
     
-    @Base.hiddenTrigger("UPDATE")
+    @Base.hiddenTrigger("UPDATE") 
     def on_update(self, bot, user, details):
         """UPDATE - attempt an update operation (using git pull)."""
         
