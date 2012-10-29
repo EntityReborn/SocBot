@@ -1,10 +1,29 @@
 import json, urllib
 
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, succeed
 from twisted.internet.protocol import Protocol
 from twisted.web.client import Agent, RedirectAgent
 from twisted.web.http_headers import Headers
+from zope.interface import implements
+from twisted.web.iweb import IBodyProducer
+
+class StringProducer(object):
+    implements(IBodyProducer)
+
+    def __init__(self, body):
+        self.body = body
+        self.length = len(body)
+
+    def startProducing(self, consumer):
+        consumer.write(self.body)
+        return succeed(None)
+
+    def pauseProducing(self):
+        pass
+
+    def stopProducing(self):
+        pass
 
 class DeferredPrinter(Protocol):
     def __init__(self, finished, prefix, postfix):
@@ -49,12 +68,14 @@ def pastie(data, prefix="", postfix="", user="Anonymous", lang="text", private="
     
     headers = {
         'User-agent': ['Mozilla/5.0',],
+        'Content-type': ['application/x-www-form-urlencoded',],
     }
     
     agent = RedirectAgent(Agent(reactor))
     headers = Headers(headers)
+    datz = urllib.urlencode(data)
     
-    d = agent.request('POST', "http://paste.thezomg.com/?%s" % urllib.urlencode(data), headers=headers)
+    d = agent.request('POST', "http://paste.thezomg.com/", headers=headers, bodyProducer=StringProducer(datz))
     
     def cbRequest(response):
         finished = Deferred()
