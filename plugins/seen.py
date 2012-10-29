@@ -132,8 +132,13 @@ class Plugin(Base):
             else:
                 tosend = ["Things people wanted you to know:",] + tosend + \
                     ['(It is currently %s)' % datetime.datetime.strftime(datetime.datetime.now(), '%c')]
+                
                 url = pastie.pastie("\n".join(tosend))
-                bot.msg(nick, "Please check out %s for a list of things people wanted to tell you." % url)
+                
+                def sendmsg(result):
+                    bot.msg(nick, "Please check out %s for a list of things people wanted to tell you." % result)
+                
+                url.addCallback(sendmsg)
                 
             manager.clearTells(nick)
                 
@@ -214,8 +219,8 @@ class Plugin(Base):
                 tosend.append(self.seenLine(item))
                     
             if len(tosend) > 4:
-                url = pastie.pastie("\n".join(tosend))
-                return "Please check out %s for the seen listing. (it was greater than 4 lines)" % url
+                url = pastie.pastie("\n".join(tosend), prefix="Please check out ", postfix=" for the seen listing. (it was greater than 4 lines)")
+                return url
             else:
                 for item in tosend:
                     bot.msg(details['channel'], item)

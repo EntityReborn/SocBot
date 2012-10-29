@@ -1,0 +1,6 @@
+[general]
+name = Update# human friendly name
+modulefile = update.py# Actual module to import to load plugins
+enabled = True
+usesconfig = True
+usesconfspec = True
