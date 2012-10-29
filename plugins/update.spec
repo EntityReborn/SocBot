@@ -1,2 +1,2 @@
 [general]
-git = string(default="/usr/bin/env git")
+git = string(default="git")
