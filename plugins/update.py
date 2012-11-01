@@ -2,7 +2,7 @@ import os
 import pastie
 from twisted.internet.utils import getProcessOutputAndValue
 
-from socbot.pluginbase import InsuffPerms, Base
+from socbot.pluginbase import Base
 
 class Plugin(Base):
     def preReload(self, *args, **kwargs):
@@ -11,9 +11,7 @@ class Plugin(Base):
     @Base.hiddenTrigger("UPDATE") 
     def on_update(self, bot, user, details):
         """UPDATE - attempt an update operation (using git pull)."""
-        
-        if not user.hasPerm("update.execute"):
-            raise InsuffPerms, "update.execute"
+        user.assertPerm("update.execute")
         
         bot.msg(details['channel'], "Update process may take a while. Starting update...")
         

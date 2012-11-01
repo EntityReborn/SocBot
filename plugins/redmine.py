@@ -1,4 +1,4 @@
-from socbot.pluginbase import Base, BadParams, InsuffPerms
+from socbot.pluginbase import Base, BadParams
 
 import urllib2, json, re
 
@@ -81,8 +81,7 @@ class Plugin(Base): # Must subclass Base
     @Base.trigger("REDURL")
     def on_seturl(self, bot, user, details):
         """REDURL <url> - Set the url to use when looking up issues in redmine"""
-        if not user.hasPerm('redmine.seturl'):
-            raise InsuffPerms
+        user.assertPerm('redmine.seturl')
         
         conf = self.getConfig()
         
@@ -101,8 +100,7 @@ class Plugin(Base): # Must subclass Base
     @Base.trigger("REDPASSREGEX")
     def on_setregex(self, bot, user, details):
         """REDPASSREGEX <string> - Set the regex to use when passively looking up issues in redmine"""
-        if not user.hasPerm('redmine.regex'):
-            raise InsuffPerms
+        user.assertPerm('redmine.regex')
         
         conf = self.getConfig()
         
@@ -121,8 +119,7 @@ class Plugin(Base): # Must subclass Base
     @Base.trigger("REDADDTRIG")
     def on_add(self, bot, user, details):
         """REDADDTRIG <nick> - Add the user to be forced active output, even when passively triggering"""
-        if not user.hasPerm('redmine.addtrig'):
-            raise InsuffPerms
+        user.assertPerm('redmine.addtrig')
         
         if len(details['splitmsg']) != 1:
             raise BadParams
@@ -141,8 +138,7 @@ class Plugin(Base): # Must subclass Base
     @Base.trigger("REDREMTRIG")
     def on_del(self, bot, user, details):
         """REDREMTRIG <nick> - Remove the user to be forced active output, even when passively triggering"""
-        if not user.hasPerm('redmine.remtrig'):
-            raise InsuffPerms
+        user.assertPerm('redmine.remtrig')
         
         if len(details['splitmsg']) != 1:
             raise BadParams
@@ -161,8 +157,7 @@ class Plugin(Base): # Must subclass Base
     @Base.trigger("SETACTFMT")
     def on_setactfmt(self, bot, user, details):
         """SETACTFMT <string> - Set the template to use when triggering a lookup via the `bug` trigger"""
-        if not user.hasPerm('redmine.setformat'):
-            raise InsuffPerms
+        user.assertPerm('redmine.setformat')
         
         if not details['splitmsg']:
             raise BadParams
@@ -178,8 +173,7 @@ class Plugin(Base): # Must subclass Base
     @Base.trigger("SETPASSFMT")
     def on_setpassfmt(self, bot, user, details):
         """SETPASSFMT <string> - Set the template to use when triggering a lookup when someone mentions #<id>"""
-        if not user.hasPerm('redmine.setformat'):
-            raise InsuffPerms
+        user.assertPerm('redmine.setformat')
         
         if not details['splitmsg']:
             raise BadParams

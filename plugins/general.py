@@ -1,4 +1,4 @@
-from socbot.pluginbase import Base, InsuffPerms, BadParams, StopProcessing
+from socbot.pluginbase import Base, BadParams, StopProcessing
 from socbot.tools import isChannel
 
 import datetime, fnmatch
@@ -52,8 +52,7 @@ class Plugin(Base):
                 return ", ".join(conf['general'][bot.name()]['ignores'])
             
         elif command == "REM":
-            if not user.hasPerm('general.ignore.remove'):
-                raise InsuffPerms, "general.ignore.remove"
+            user.assertPerm('general.ignore.remove')
             
             if not len(parts):
                 raise BadParams
@@ -72,8 +71,7 @@ class Plugin(Base):
             return True if success else "Not found."
                 
         elif command == "ADD":
-            if not user.hasPerm('general.ignore.add'):
-                raise InsuffPerms, "general.ignore.add"
+            user.assertPerm('general.ignore.add')
             
             if not len(parts):
                 raise BadParams
@@ -96,8 +94,7 @@ class Plugin(Base):
     @Base.trigger("NICK")
     def on_nick(self, bot, user, details):
         """NICK <newnick> - Request to change the bot's name"""
-        if not user.hasPerm('general.nick'):
-            raise InsuffPerms, "general.nick"
+        user.assertPerm('general.nick')
         
         if len(details['splitmsg']) != 1:
             raise BadParams
@@ -109,8 +106,7 @@ class Plugin(Base):
     @Base.trigger("MSG")
     def on_msg(self, bot, user, details):
         """MSG <target> <msg> - Send <msg> to <target>"""
-        if not user.hasPerm('general.msg'):
-            raise InsuffPerms, "general.msg"
+        user.assertPerm('general.msg')
         
         if not len(details['splitmsg']) > 1:
             raise BadParams
@@ -126,8 +122,7 @@ class Plugin(Base):
     @Base.trigger("SAY")
     def on_say(self, bot, user, details):
         """SAY <msg> - Send <msg> to the current channel"""
-        if not user.hasPerm('general.msg'):
-            raise InsuffPerms, "general.msg"
+        user.assertPerm('general.msg')
         
         if not len(details['splitmsg']):
             raise BadParams
@@ -140,9 +135,7 @@ class Plugin(Base):
     @Base.trigger("RESTART")
     def on_restart(self, bot, user, details):
         """RESTART [message] - Ask the bot to restart"""
-        
-        if not user.hasPerm('general.restart'):
-            raise InsuffPerms, "general.restart"
+        user.assertPerm('general.restart')
         
         if details['splitmsg']:
             bot.restart(' '.join(details['splitmsg']))
@@ -152,9 +145,7 @@ class Plugin(Base):
     @Base.trigger("SHUTDOWN", "DIAF")
     def on_shutdown(self, bot, user, details):
         """SHUTDOWN [message] - Ask the bot to shutdown"""
-        
-        if not user.hasPerm('general.shutdown'):
-            raise InsuffPerms, "general.shutdown"
+        user.assertPerm('general.shutdown')
         
         if details['splitmsg']:
             bot.quit(' '.join(details['splitmsg']))
@@ -169,10 +160,12 @@ class Plugin(Base):
     @Base.trigger("COMMANDS")
     def on_commands(self, bot, user, details):
         """COMMANDS - Show commands known to the bot"""
-        commands = ", ".join([x for x in self.manager.core.getAllTriggers() if x != "TRIG_UNKNOWN"])
+        commands = ", ".join(sorted([x.lower() for x in self.manager.core.getAllTriggers() if x != "TRIG_UNKNOWN"]))
+        
         msg = "Commands I am aware of: {0}".format(commands)
-
-        return msg
+        
+        bot.msg(details['channel'], msg)
+        return "Please see the private message I sent you. (this helps keep channel spam down)"
     
     @Base.trigger("HELP")
     def on_help(self, bot, user, details):
@@ -197,30 +190,52 @@ class Plugin(Base):
         """JOIN <channel> [key] - Join a channel."""
         parts = details["splitmsg"]
 
-        if not user.hasPerm('general.join'):
-            raise InsuffPerms, "general.join"
+        user.assertPerm('general.join')
         
         if parts:
             chan = parts.pop(0).lower()
 
             if parts:
-                message = " ".join(parts)
+                pass_ = " ".join(parts)
             else:
-                message = None
+                pass_ = None
 
-            bot.join(chan, message)
+            bot.join(chan, pass_)
         else:
             raise BadParams
 
         return True
     
+    @Base.trigger("CYCLE")
+    def on_cycle(self, bot, user, details):
+        """CYCLE [channel] - Leave then rejoin a channel."""
+        
+        parts = details["splitmsg"]
+
+        user.assertPerm('general.cycle')
+        
+        if parts:
+            channel = parts.pop(0)
+        else:
+            channel = details['channel']
+        
+        channel = channel.lower()
+        
+        bot.leave(channel, "Cycling.")
+        
+        config = bot.chanConfig(channel)
+        
+        if 'password' in config and config['password']:
+            bot.join(channel, config['password'])
+        else:
+            bot.join(channel)
+        
     @Base.trigger("PART", "LEAVE")
     def on_leave(self, bot, user, details):
         """PART <channel> [message] - Leave a channel."""
         parts = details["splitmsg"]
 
-        if not user.hasPerm('general.part'):
-            raise InsuffPerms, "general.part"
+        user.assertPerm('general.part')
         
         if parts:
             if isChannel(parts[0]):

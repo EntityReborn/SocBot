@@ -11,7 +11,7 @@ class Priority():
 class StopProcessing(Exception):
     """Stop next processing steps. (Basically, to allow ignoring.)"""
 
-class InsuffPerms(Exception):
+class InsufficientPerms(Exception):
     """The user does not have the required permissions"""
 
 class BadParams(Exception):

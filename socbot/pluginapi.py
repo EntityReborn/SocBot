@@ -1,7 +1,7 @@
 import re
 
-from socbot.userdb import UnknownHostmask, NoSuchUser
-from socbot.pluginbase import InsuffPerms, BadParams, StopProcessing
+from socbot.userdb import UnknownHostmask, NoSuchUser, InsufficientPerms
+from socbot.pluginbase import BadParams, StopProcessing
 from twisted.internet.defer import maybeDeferred
 
 class API(object):
@@ -24,26 +24,35 @@ class API(object):
     def restart(self, message="Restarting..."):
         self.connection.restart(message)
         
-    def join(self, channel, key=None):
+    def join(self, channel, key=None, updateconfig=True):
         channel = channel.lower()
-        config = self.serverConfig()
         
-        if not channel in config["channels"]:
-            config["channels"][channel] = {}
+        config = self.chanConfig(channel)
         
-        if key:
-            config["channels"][channel]["password"] = key
+        if updateconfig and key:
+            config["password"] = key
+            
+        if updateconfig:
+            config['autojoin'] = True
 
         self.saveConfig()
 
         self.connection.join(channel, key)
-
-    def leave(self, channel, msg="Good-bye."):
-        channel = channel.lower()
+        
+    def chanConfig(self, channel):
         config = self.serverConfig()
         
-        if channel in config['channels']:
-            config['channels'][channel]['autojoin'] = False
+        if not channel in config["channels"]:
+            config["channels"][channel] = {}
+            
+        return config["channels"][channel]
+
+    def leave(self, channel, msg="Good-bye.", updateconfig=True):
+        channel = channel.lower()
+        config = self.chanConfig(channel)
+        
+        if updateconfig:
+            config['autojoin'] = False
             
             self.saveConfig()
 
@@ -194,10 +203,10 @@ class API(object):
             self.plugins.triggerEvent("TRIG_UNKNOWN", self, usr, details)
             
     def sendError(self, err, target, func, nick):
-        err.trap(InsuffPerms, BadParams, Exception)
+        err.trap(InsufficientPerms, BadParams, Exception)
         if err.type == BadParams:
             self.connection.msg(target, func.__doc__)
-        elif err.type == InsuffPerms:
+        elif err.type == InsufficientPerms:
             notificationtype = self.generalConfig()['permerrornotification']
             message = "Insufficient permissions (%s). Did you forget to log in?" % err.value.args[0]
             

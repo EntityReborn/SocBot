@@ -1,4 +1,4 @@
-from socbot.pluginbase import Base, InsuffPerms, BadParams
+from socbot.pluginbase import Base, BadParams
 from socbot.config import PathDoesntExist
 
 class Plugin(Base):
@@ -8,9 +8,8 @@ class Plugin(Base):
         parts = details["splitmsg"]
         command = details["trigger"]
 
-        if not user.HasPerm("config.config"):
-            raise InsuffPerms, "config.config"
-
+        user.assertPerm("config.config")
+        
         if not parts:
             raise BadParams
 

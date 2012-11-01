@@ -1,4 +1,4 @@
-from socbot.pluginbase import Base, InsuffPerms, BadParams
+from socbot.pluginbase import Base, BadParams
 from socbot.plugincore import NoSuchPlugin, PluginNotLoaded, PluginAlreadyLoaded
 
 class Plugin(Base):
@@ -8,8 +8,7 @@ class Plugin(Base):
         parts = details["splitmsg"]
         command = details["trigger"]
 
-        if not user.hasPerm("plugins.reload"):
-            raise InsuffPerms, "plugins.reload"
+        user.assertPerm("plugins.reload")
 
         if not parts:
             self.manager.core.reloadPlugins()
@@ -31,8 +30,7 @@ class Plugin(Base):
         parts = details["splitmsg"]
         command = details["trigger"]
 
-        if not user.hasPerm('plugins.'+command):
-            raise InsuffPerms, "plugins."+command
+        user.assertPerm('plugins.'+command)
 
         if not parts:
             raise BadParams

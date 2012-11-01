@@ -11,12 +11,14 @@ prefixes = "~&@%+"
 
 Base = declarative_base()
 
-class UserNotLoggedIn(Exception): pass
-class UserAlreadyExists(Exception): pass
-class NoSuchUser(Exception): pass
-class BadPass(Exception): pass
-class BadEmail(Exception): pass
-class UnknownHostmask(Exception): pass
+class UserException(Exception): pass
+class UserNotLoggedIn(UserException): pass
+class UserAlreadyExists(UserException): pass
+class InsufficientPerms(UserException): pass
+class NoSuchUser(UserException): pass
+class BadPass(UserException): pass
+class BadEmail(UserException): pass
+class UnknownHostmask(UserException): pass
 
 class TextPickleType(PickleType):
     impl = Text
@@ -59,6 +61,13 @@ class UnregisteredUser(object):
     def remPerm(self, node):
         raise UserNotLoggedIn
             
+    def assertPerm(self, node, default=False):
+        has = self.hasPerm(node, default)
+        if not has:
+            raise InsufficientPerms, node
+        
+        return has
+    
     def hasPerm(self, node, default=False):
         return default
     
@@ -115,6 +124,14 @@ class RegisteredUser(Base):
             return True
         
         return False
+    
+    def assertPerm(self, node, default=False):
+        has = self.hasPerm(node, default)
+        
+        if not has:
+            raise InsufficientPerms, node
+        
+        return has
             
     def hasPerm(self, node, default=False):
         path = node.lower().split(".")
@@ -242,6 +259,12 @@ class User(object):
         self.db.saveSession()
         return retn
             
+    def assertPerm(self, node, default=False):
+        if not self.hasPerm(node, default):
+            raise InsufficientPerms, node
+        
+        return True
+    
     def hasPerm(self, node, default=False):
         return self.registration.hasPerm(node, default)
     

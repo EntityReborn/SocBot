@@ -5,3 +5,4 @@
 conf/*.pid
 *.db
 *.conf
+/nbproject/private/

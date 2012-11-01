@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy import Column, Integer, String, Boolean, create_engine
 from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
@@ -9,20 +9,26 @@ class Factoid(Base):
     id = Column(Integer, primary_key=True)
     keyword = Column(String, unique=True)
     response = Column(String)
+    createdby = Column(String, default="")
+    alteredby = Column(String, nullable=True, default="")
+    locked = Column(Boolean, nullable=True, default=False)
+    lockedby = Column(String, nullable=True, default="")
 
-    def __init__(self, key, response):
+    def __init__(self, key, response, createdby="", alteredby=None, locked=False, lockedby=None):
         self.keyword = key
         self.response = response
+        self.createdby = createdby
+        self.alteredby = alteredby
+        self.locked = locked
+        self.lockedby = lockedby
 
     def __repr__(self):
-        return "<Factoid('%s', '%s')>" % (self.keyword, self.response)
+        return "<Factoid('%s', '%s', '%s', '%s', %s, '%s')>" % \
+            (self.keyword, self.response, self.createdby, self.alteredby, self.locked, self.lockedby)
 
-class FactoidAlreadyExists(Exception): pass
-class NoSuchFactoid(Exception): pass
-class OrphanedFactoid(Exception): pass
-class CyclicalFactoid(Exception): 
-    def __init__(self, lst):
-        self.lst = lst
+class FactoidException(Exception): pass
+class FactoidAlreadyExists(FactoidException): pass
+class NoSuchFactoid(FactoidException): pass
 
 class FactoidManager(object):
     def __init__(self, db=None):
@@ -34,32 +40,12 @@ class FactoidManager(object):
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         
+    def save(self):
+        self.session.commit()
+        
     def allFacts(self):
         return self.session.query(Factoid)
     
-    def isCyclical(self, key, response):
-        refs = ["@"+key,]
-        
-        while True:
-            if not response.startswith("@"):
-                return False
-            
-            split = response.split()
-            key = split[0].lower()[1:]
-            refs.append("@"+key)
-            
-            exists = self.session.query(Factoid).filter_by(keyword=key)
-            if not exists.count():
-                return False
-            
-            response = str(exists.first().response)
-            
-            if not response in refs:
-                continue
-            else:
-                refs.append(response)
-                return refs
-        
     def addFact(self, key, response, replace=False):
         key = key.lower()
         exists = self.session.query(Factoid).filter_by(keyword=key)
@@ -71,17 +57,9 @@ class FactoidManager(object):
         if exists.count():
             fact = exists.first()
             
-            cycs = self.isCyclical(key, response)
-            if cycs:
-                raise CyclicalFactoid(cycs)
-            
             fact.response = response
         else:
             fact = Factoid(key, response)
-            
-            cycs = self.isCyclical(key, response)
-            if cycs:
-                raise CyclicalFactoid(cycs)
             
             self.session.add(fact)
 
@@ -98,20 +76,8 @@ class FactoidManager(object):
         if not exists.count():
             raise NoSuchFactoid, key
         
-        response = exists.first().response
-        
-        alias = False
-        if response.startswith('@'):
-            alias = response[1::]
-            try:
-                response = self.getFact(alias)
-            except NoSuchFactoid, e:
-                raise OrphanedFactoid, e
-            
-        if alias:
-            return response
-        
-        return response
+        fact = exists.first()
+        return fact
 
     def remFact(self, key):
         exists = self.session.query(Factoid).filter_by(keyword=key)

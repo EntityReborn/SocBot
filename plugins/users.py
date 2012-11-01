@@ -1,4 +1,4 @@
-from socbot.pluginbase import Base, BadParams, InsuffPerms
+from socbot.pluginbase import Base, BadParams
 from socbot.userdb import prefixes, BadEmail, NoSuchUser, BadPass
 from socbot.userdb import UserAlreadyExists, UserNotLoggedIn, NoSuchUser
 
@@ -188,8 +188,7 @@ class Plugin(Base):
         if not details["wasprivate"]:
             return "OOPS! Please privmsg me to change passwords!"
         
-        if not user.hasPerm('users.setpass'):
-            raise InsuffPerms, "users.setpass"
+        user.assertPerm('users.setpass')
         
         if len(parts) != 2:
             raise BadParams
@@ -235,8 +234,7 @@ class Plugin(Base):
         parts = details["splitmsg"]
         
         if parts:
-            if not user.hasPerm('users.addmask.other'):
-                raise InsuffPerms, "users.addmask.other"
+            user.assertPerm('users.addmask.other')
             
             usr = parts.pop(0)
             
@@ -268,8 +266,7 @@ class Plugin(Base):
     @Base.trigger("ADDPERM")
     def in_addperm(self, bot, user, details):
         """ADDPERM <user> <perm>[ <perm> ...] - Give a user one or more permission nodes."""
-        if not user.hasPerm("users.permissions.remove"):
-            raise InsuffPerms, 'users.permissions.add'
+        user.assertPerm("users.permissions.remove")
                   
         if len(details['splitmsg']) >= 2:
             try:
@@ -305,8 +302,7 @@ class Plugin(Base):
     @Base.trigger("REMPERM")
     def in_remperm(self, bot, user, details):
         """REMPERM <user> <perm>[ <perm> ...] - Deny a user one or more permission nodes."""
-        if not user.hasPerm("users.permissions.remove"):
-            raise InsuffPerms, 'users.permissions.remove'
+        user.assertPerm("users.permissions.remove")
                   
         if len(details['splitmsg']) >= 2:
             try:

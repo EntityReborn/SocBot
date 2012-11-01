@@ -5,7 +5,7 @@ from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Protocol
 from twisted.web.client import Agent
 
-from socbot.pluginbase import InsuffPerms, BadParams, Base
+from socbot.pluginbase import BadParams, Base
 
 class DeferredPrinter(Protocol):
     def __init__(self, finished):
