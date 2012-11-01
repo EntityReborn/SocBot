@@ -101,7 +101,7 @@ class Plugin(Base): # Must subclass Base
     
     @Base.trigger("?LIST", "FACTLIST", "LISTFACTS")
     def on_list(self, bot, user, details):
-        """FACTLIST [-g|-n] - list available factoids. Use -g to list global factoids, and -n to list network factoids"""
+        """FACTLIST [-g|-n|<channel>] - list available factoids. Use -g to list global factoids, and -n to list network factoids."""
         
         isglobal = len(details['splitmsg']) and details['splitmsg'][0].lower() == "-g"
         isnetwork = len(details['splitmsg']) and details['splitmsg'][0].lower() == "-n"
@@ -111,16 +111,19 @@ class Plugin(Base): # Must subclass Base
         elif isnetwork:   
             facts = self.factManager(bot).allFacts()
         else:
-            facts = self.factManager(bot, details['channel']).allFacts()
+            if len(details['splitmsg']):
+                channel = details['splitmsg'][0].lower()
+            else:
+                channel = details['channel']
+                
+            facts = self.factManager(bot, channel).allFacts()
         
-        if facts:
-            retn = ", ".join(sorted([f.keyword for f in facts]))
+        if facts.count():
+            bot.msg(user.username(), ", ".join(sorted([f.keyword.lower() for f in facts])))
+            return "Please see the private message I sent you. (this helps keep channel spam down)"
         else:
-            retn = "No factoids."
-            
-        bot.msg(user.username(), retn)
-        return "Please see the private I sent you. (this helps keep channel spam down)"
-    
+            return "No factoids to be shown."
+
     @Base.trigger("?>", "TELLFACT")
     def on_tell(self, bot, user, details):
         """TELLFACT <nick> <id> - tell a user about a factoid"""
