@@ -2,6 +2,15 @@ from socbot.pluginbase import Base, BadParams
 from socbot.plugincore import NoSuchPlugin, PluginNotLoaded, PluginAlreadyLoaded
 
 class Plugin(Base):
+    @Base.trigger("LIST")
+    def on_list(self, bot, user, details):
+        plugs = bot.plugins
+        names = []
+        for plug in plugs.plugintrackers.values():
+            names.append(plug.getName())
+            
+        return "Loaded plugins: %s." % ", ".join(names)
+    
     @Base.trigger("RELOAD")
     def on_reload(self, bot, user, details):
         """RELOAD [name] - Reload plugins. If name is not specified, all plugins are reloaded"""

@@ -57,7 +57,7 @@ class Plugin(Base):
                 
             self.bots[bot][channel] = url
         
-    @Base.trigger("TIT", "TITLE")
+    @Base.trigger("TITLE")
     def on_title(self, bot, user, details):
         """TITLE [url] - If provided, prints the title of url. If not, prints the title of the last mentioned url."""
         if not len(details['splitmsg']):
@@ -97,7 +97,7 @@ class Plugin(Base):
         except urllib2.URLError, e:
             return "There was an error retrieving the page's data. (%s: %s)" % (url, e)
         
-    @Base.trigger("UP", "DOWN", "ISUP", "ISDOWN")
+    @Base.trigger("ISUP")
     def on_up(self, bot, user, details):
         """ISUP http://<url> - Check to see if the webserver at url is up and kicking."""
         if len(details['splitmsg']):

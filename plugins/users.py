@@ -116,9 +116,9 @@ class Plugin(Base):
         else:
             return "This user is not an op!"
         
-    @Base.trigger("IDENTIFY", "ID")
+    @Base.trigger("LOGIN")
     def on_identify(self, bot, user, details):
-        """IDENTIFY [username] <password> - Identify with the bot"""
+        """LOGIN [username] <password> - Identify with the bot"""
         parts =  details["splitmsg"]
         command = details["trigger"]
 
@@ -335,5 +335,3 @@ class Plugin(Base):
                 return self.print_user(usr)
             else:
                 return "Unknown user."
-            
-            

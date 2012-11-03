@@ -1,0 +1,6 @@
+[general]
+name = Aliases# human friendly name
+modulefile = aliases.py# Actual module to import to load plugins
+enabled = True
+usesconfig = True
+usesconfspec = True

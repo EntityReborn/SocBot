@@ -3,6 +3,7 @@ import re
 from socbot.userdb import UnknownHostmask, NoSuchUser, InsufficientPerms
 from socbot.pluginbase import BadParams, StopProcessing
 from twisted.internet.defer import maybeDeferred
+from plugincore import MultipleTriggers
 
 class API(object):
     sourceURL = "https://github.com/entityreborn/SocBot/"
@@ -186,24 +187,73 @@ class API(object):
                 return
                     
             except Exception:
-                self.log.exception("General exception")
+                self.log.exception("General prefilter exception")
                 
-        func = self.plugins.getTrigger(trigger)
+        trigger = details['trigger'].upper()
+        
+        try:
+            # See if a trigger exists.
+            retn = self.plugins.getTrigger(trigger)
+        except MultipleTriggers as trigs:
+            # Multiple triggers exist, lets list them to the user and die.
+            plugs = [x[0].getName() for x in trigs.trackers]
             
-        if func:
+            s = "The command '%s' is defined in more than one plugin: %s." % (trigger.lower(), ", ".join(plugs))
+            self.sendResult(s, channel)
+                    
+            return
+        
+        if retn:
+            # We found a trigger, lets set it up for use.
+            tracker, func = retn
             self.log.debug("trigger: {0}".format(trigger))
-            
-            try:
-                d = maybeDeferred(func, self, usr, details)
-                d.addCallback(self.sendResult, channel)
-                d.addErrback(self.sendError, channel, func, nick)
-            except Exception:
-                self.log.exception("General exception")
         else:
-            self.plugins.triggerEvent("TRIG_UNKNOWN", self, usr, details)
+            # No trigger found, lets see if there's a tracker (plugin) loaded with that name
+            tracker = self.plugins.getTracker(trigger)
+        
+            if tracker:
+                # Found a plugin with that name
+                
+                if details['splitmsg']:
+                    # An argument was given, lets use it as a trigger to look for.
+                    
+                    trigger = details['splitmsg'].pop(0)
+                    details['trigger'] = trigger
+                    func = tracker.getTrigger(trigger)
+                    
+                    if not func:
+                        # But that trigger doesn't exist!
+                        
+                        s = "The plugin '%s' does not have a '%s' command." % (tracker.getName().capitalize(), trigger)
+                        self.sendResult(s, channel)
+                        
+                        return
+                else:
+                    # Lets list the triggers this plugin has exposed publicly.
+                    
+                    trigs = [x.lower() for x in tracker.getTriggers()]
+                    s = "The plugin '%s' has the following commands available: %s" % (tracker.getName(), ", ".join(trigs))
+                    self.sendResult(s, channel)
+                    
+                    return
+            else:
+                # Nothing found. Lets see if any plugins do anything here.
+                
+                self.plugins.triggerEvent("TRIG_UNKNOWN", self, usr, details)
+                return
+                
+        try:
+            # Whelp. Got this far, have a func to use, lets fire it, allowing for async stuff.
             
+            d = maybeDeferred(func, self, usr, details)
+            d.addCallback(self.sendResult, channel)
+            d.addErrback(self.sendError, channel, func, nick)
+        except Exception:
+            self.log.exception("General exception")
+        
     def sendError(self, err, target, func, nick):
         err.trap(InsufficientPerms, BadParams, Exception)
+        
         if err.type == BadParams:
             self.connection.msg(target, func.__doc__)
         elif err.type == InsufficientPerms:

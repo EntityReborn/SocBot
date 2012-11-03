@@ -2,7 +2,7 @@ import cherrypy, os, glob, sys
 from socbot.userdb import UserDB
 
 sys.path.append('plugins')
-from infobase import FactoidManager
+from factoidbase import FactoidManager
 
 from jinja2 import Environment, FileSystemLoader
 env = Environment(loader=FileSystemLoader('socbot/webserver/templates'))

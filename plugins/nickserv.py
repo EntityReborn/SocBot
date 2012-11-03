@@ -13,9 +13,9 @@ class Plugin(Base):
         except KeyError:
             pass
     
-    @Base.trigger("NICKSERVSET")
+    @Base.trigger("SET")
     def on_nsset(self, bot, user, details):
-        """NICKSERVSET <nick> <pass> - Set the password to use for registering with nickserv at login"""
+        """SET <nick> <pass> - Set the password to use for registering with nickserv at login"""
         user.assertPerm('nickserv.set')
         
         if len(details['splitmsg']) != 2:
@@ -30,6 +30,21 @@ class Plugin(Base):
         conf['general']['nickservpass'] = details['splitmsg'][1]
         
         conf.write()
+        
+        bot.msg('NICKSERV', 'identify %s %s' % (conf['general']['nickservnick'], 
+                                                conf['general']['nickservpass']))
+        
+        return True
+    
+    @Base.trigger("IDENTIFY")
+    def on_id(self, bot, user, details):
+        """IDENTIFY - identify with nickserv manually"""
+        user.assertPerm('nickserv.identify')
+        
+        conf = self.getConfig()
+        
+        if not 'general' in conf:
+            return "This plugin isn't set up to identify with nickserv on this network."
         
         bot.msg('NICKSERV', 'identify %s %s' % (conf['general']['nickservnick'], 
                                                 conf['general']['nickservpass']))

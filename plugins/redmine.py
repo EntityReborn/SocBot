@@ -186,9 +186,9 @@ class Plugin(Base): # Must subclass Base
         
         return True
         
-    @Base.trigger("BUG", "ISSUE")
+    @Base.trigger("ISSUE")
     def on_bug(self, bot, user, details):
-        """BUG <id> - request link to redmine bug with id <id>"""
+        """ISSUE <id> - request link to redmine bug with id <id>"""
         if len(details['splitmsg']) < 1:
             raise BadParams
         

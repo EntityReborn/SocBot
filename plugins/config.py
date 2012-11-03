@@ -4,7 +4,7 @@ from socbot.config import PathDoesntExist
 class Plugin(Base):
     @Base.trigger("CONFIG")
     def on_config(self, bot, user, details):
-        """CONFIG PLUGIN|BASE|RELOAD <...>"""
+        """CONFIG <PLUGIN|BASE|RELOAD> [<...>]"""
         parts = details["splitmsg"]
         command = details["trigger"]
 

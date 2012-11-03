@@ -7,6 +7,24 @@ class CyclicalFactoid(factoidbase.FactoidException):
         
 class OrphanedFactoid(factoidbase.FactoidException): pass
 
+class FactType():
+    UNKNOWN = 0
+    GLOBAL = 1
+    NETWORK = 2
+    CHANNEL = 3
+    
+    def __init__(self, t):
+        self.type = t
+    
+    def isGlobal(self):
+        return self.type == self.GLOBAL
+    
+    def isNetwork(self):
+        return self.type == self.NETWORK
+    
+    def isChannel(self):
+        return self.type == self.CHANNEL
+
 class Plugin(Base): # Must subclass Base
     def initialize(self, *args, **kwargs):
         self.factmanagers = {}
@@ -32,6 +50,18 @@ class Plugin(Base): # Must subclass Base
             self.factmanagers[bot.name().lower()] = factoidbase.FactoidManager(f)
         
         return self.factmanagers[bot.name().lower()]
+    
+    def getType(self, parts):
+        if not parts:
+            return FactType(FactType.CHANNEL)
+        
+        flag = parts[0].lower()
+        if flag == "-g":
+            return FactType(FactType.GLOBAL)
+        elif flag == "-n":
+            return FactType(FactType.NETWORK)
+        else:
+            return FactType(FactType.UNKNOWN)
     
     def getFact(self, bot, details, key, reflist=None):
         key = key.lower()
@@ -82,9 +112,9 @@ class Plugin(Base): # Must subclass Base
         except factoidbase.FactoidException, e:
             pass
     
-    @Base.trigger("?")
+    @Base.trigger("WHATIS")
     def on_whatis(self, bot, user, details):
-        """? <id> - say a factoid"""
+        """WHATIS <id> - say a factoid"""
         if len(details['splitmsg']) < 1:
             raise BadParams
         
@@ -99,16 +129,15 @@ class Plugin(Base): # Must subclass Base
             
         return str(response)
     
-    @Base.trigger("?LIST", "FACTLIST", "LISTFACTS")
+    @Base.trigger("LIST")
     def on_list(self, bot, user, details):
-        """FACTLIST [-g|-n|<channel>] - list available factoids. Use -g to list global factoids, and -n to list network factoids."""
+        """LIST [-g|-n|<channel>] - list available factoids. Use -g to list global factoids, and -n to list network factoids."""
         
-        isglobal = len(details['splitmsg']) and details['splitmsg'][0].lower() == "-g"
-        isnetwork = len(details['splitmsg']) and details['splitmsg'][0].lower() == "-n"
+        facttype = self.getType(details['splitmsg'])
         
-        if isglobal:
+        if facttype.isGlobal():
             facts = self.globalmanager.allFacts()
-        elif isnetwork:   
+        elif facttype.isNetwork():   
             facts = self.factManager(bot).allFacts()
         else:
             if len(details['splitmsg']):
@@ -120,13 +149,15 @@ class Plugin(Base): # Must subclass Base
         
         if facts.count():
             bot.msg(user.username(), ", ".join(sorted([f.keyword.lower() for f in facts])))
+            
             return "Please see the private message I sent you. (this helps keep channel spam down)"
         else:
             return "No factoids to be shown."
 
-    @Base.trigger("?>", "TELLFACT")
+    @Base.trigger("TELL")
     def on_tell(self, bot, user, details):
-        """TELLFACT <nick> <id> - tell a user about a factoid"""
+        """TELL <nick> <id> - tell a user about a factoid"""
+        
         if len(details['splitmsg']) < 2:
             raise BadParams
         
@@ -141,69 +172,68 @@ class Plugin(Base): # Must subclass Base
             
         return '%s: %s' % (details['splitmsg'][0], str(response))
     
-    @Base.trigger("ADDFACT", "?+")
-    def on_define(self, bot, user, details):
-        """ADDFACT [-g|-n] <id> <message> - define a factoid. Use -g to define a global factoid, and -n to define a network factoid"""
+    @Base.trigger("ADD")
+    def on_add(self, bot, user, details):
+        """ADD [-g|-n] <id> <message> - define a factoid. Use -g to define a global factoid, and -n to define a network factoid"""
         
         paramcount = len(details['splitmsg'])
         
         if paramcount < 2:
             raise BadParams
         
-        isglobal = details['splitmsg'][0].lower() == "-g"
-        isnetwork = details['splitmsg'][0].lower() == "-n"
+        facttype = self.getType(details['splitmsg'])
         
-        if (isglobal or isnetwork) and paramcount < 3:
+        if not facttype.isChannel() and paramcount < 3:
             raise BadParams
         
-        if isglobal:
-            user.assertPerm('factoids.global.define')
+        if facttype.isGlobal():
+            user.assertPerm('factoids.global.add')
             manager = self.globalmanager
             trigger = details['splitmsg'][1]
             data = ' '.join(details['splitmsg'][2::])
-        elif isnetwork:
-            user.assertPerm('factoids.network.define')
+        elif facttype.isNetwork():
+            user.assertPerm('factoids.network.add')
             manager = self.factManager(bot)
             trigger = details['splitmsg'][1]
             data = ' '.join(details['splitmsg'][2::])
         else:
-            user.assertPerm('factoids.define')
+            user.assertPerm('factoids.add')
             manager = self.factManager(bot, details['channel'])
             trigger = details['splitmsg'][0]
             data = ' '.join(details['splitmsg'][1::])
-            
-        oldfact = None
+           
         try:
             oldfact = manager.getFact(trigger)
-        except factoidbase.NoSuchFactoid, e:
-            pass
+        except factoidbase.NoSuchFactoid:
+            oldfact = None
         
-        try:
-            if not oldfact or (oldfact and not oldfact.locked) or \
-            (isglobal and user.hasPerm("factoids.global.lock.override")) or \
-            (isnetwork and user.hasPerm("factoids.network.lock.override")) or \
-            (not isglobal and not isnetwork and user.hasPerm("factoids.lock.override")):
-                fact = manager.addFact(trigger, data, True)
-            else:
-                return "That factoid is locked! (by %s)" % oldfact.lockedby
-            
-        except CyclicalFactoid as e:
-            return "Recursive factoid! Not saving. (Resulting chain would be `%s`)" % " -> ".join(e.lst)
-        except OrphanedFactoid, e:
-            return "Orphaned factoid alias in chain. Not saving. (Orphaned alias is `%s`)" % e
+        ismyfact = not oldfact or (oldfact and oldfact.createdby.lower() == user.username().lower())
         
-        if not oldfact:
-            fact.createdby = user.username()
+        overrideslock = (facttype.isGlobal() and user.hasPerm("factoids.global.lock.override")) or \
+            (facttype.isNetwork() and user.hasPerm("factoids.network.lock.override")) or \
+            (facttype.isChannel() and user.hasPerm("factoids.lock.override"))
+
+        if not oldfact or (oldfact and not oldfact.locked) or \
+        ismyfact or overrideslock:
+            if oldfact and not ismyfact:
+                user.assertPerm("factoids.update")
+                
+            fact = manager.addFact(trigger, data, True)
         else:
-            fact.alteredby = user.username()
+            return "That factoid is locked! (by %s)" % oldfact.lockedby
+
+        if not oldfact:
+            fact.createdby = user.username().lower()
+        else:
+            fact.alteredby = user.username().lower()
         
         manager.save()
           
         return "Factoid set."
     
-    @Base.trigger("LOCKFACT", "?L", "?LOCK")
+    @Base.trigger("LOCK")
     def on_lock(self, bot, user, details):
-        """LOCKFACT [-g|-n] <id> - lock a factoid. Use -g to lock a global factoid, and -n to lock a network factoid"""
+        """LOCK [-g|-n] <id> - lock a factoid. Use -g to lock a global factoid, and -n to lock a network factoid"""
         
         paramcount = len(details['splitmsg'])
         
@@ -245,9 +275,9 @@ class Plugin(Base): # Must subclass Base
           
         return "Factoid locked."
     
-    @Base.trigger("UNLOCKFACT", "?U", "?UNLOCK")
+    @Base.trigger("UNLOCK")
     def on_unlock(self, bot, user, details):
-        """UNLOCKFACT [-g|-n] <id> - lock a factoid. Use -g to unlock a global factoid, and -n to unlock a network factoid"""
+        """UNLOCK [-g|-n] <id> - lock a factoid. Use -g to unlock a global factoid, and -n to unlock a network factoid"""
         
         paramcount = len(details['splitmsg'])
         
@@ -289,9 +319,9 @@ class Plugin(Base): # Must subclass Base
           
         return "Factoid unlocked."
 
-    @Base.trigger("REMFACT", "?-")
+    @Base.trigger("REM")
     def on_remove(self, bot, user, details):
-        """REMFACT [-g|-n] <id> - remove a factoid. Use -g to remove a global factoid, and -n for a network factoid"""
+        """REM [-g|-n] <id> - remove a factoid. Use -g to remove a global factoid, and -n for a network factoid"""
         
         paramcount = len(details['splitmsg'])
         

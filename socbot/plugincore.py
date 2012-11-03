@@ -8,7 +8,10 @@ import pluginbase
 
 log = logging.getLogger('pluginmanager')
 
-class MultipleTriggers(Exception): pass
+class MultipleTriggers(Exception): 
+    def __init__(self, tracks):
+        self.trackers = tracks
+     
 class NoSuchPlugin(Exception): pass
 class PluginAlreadyLoaded(Exception): pass
 class PluginNotLoaded(Exception): pass
@@ -43,6 +46,9 @@ class PluginTracker(object):
     
     def getMsgPreFilters(self):
         return sorted(self.msgprefilters)
+    
+    def getName(self):
+        return self.info['general']['name'].lower()
     
     def getTrigger(self, trig):
         trig = trig.upper()
@@ -245,14 +251,23 @@ class PluginCore(object):
         
         for tracker in self.plugintrackers.values():
             if tracker.hasTrigger(trigger):
-                trigs.append(tracker.getTrigger(trigger))
+                trigs.append((tracker, tracker.getTrigger(trigger)))
 
         if len(trigs) > 1:
-            raise MultipleTriggers, trigs
+            raise MultipleTriggers(trigs)
         elif not trigs:
             return False
 
         return trigs[0]
+    
+    def getTracker(self, name):
+        name = name.lower()
+        
+        for tracker in self.plugintrackers.values():
+            if tracker.info['general']['name'].lower() == name:
+                return tracker
+            
+        return None
 
     def triggerEvent(self, event, *args):
         log.debug("triggering '{0}'".format(event))

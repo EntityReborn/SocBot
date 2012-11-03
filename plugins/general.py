@@ -27,11 +27,12 @@ class Plugin(Base):
                     not user.hasPerm('general.ignore.bypass'):
                 raise StopProcessing
             
-    @Base.event("JOIN")
+    @Base.event("RPL_WELCOME")
     def on_joined(self, bot, command, prefix, params):
         conf = self.getConfig()
         
-        if not bot.name() in conf['general']:
+        if not bot.name() in conf['general'] and \
+        not 'ignores' in conf['general'][bot.name()]:
             conf['general'][bot.name()] = {"ignores":[]}
             conf.write()
             
@@ -43,48 +44,60 @@ class Plugin(Base):
             raise BadParams
         
         command = parts.pop(0).upper()
-        conf = self.getConfig()
         
         if command == "LIST":
-            if not conf['general'][bot.name()]['ignores']:
-                return "Noone is ignored!"
-            else:
-                return ", ".join(conf['general'][bot.name()]['ignores'])
-            
+            return self.ign_list(bot, parts
+                                 )
         elif command == "REM":
             user.assertPerm('general.ignore.remove')
-            
-            if not len(parts):
-                raise BadParams
-            
-            success = False
-            
-            for x in parts:
-                try:
-                    conf['general'][bot.name()]['ignores'].remove(x.lower())
-                    success = True
-                except ValueError:
-                    pass
-            
-            conf.write()
-            
-            return True if success else "Not found."
+            return self.ign_rem(bot, parts)
                 
         elif command == "ADD":
             user.assertPerm('general.ignore.add')
-            
-            if not len(parts):
-                raise BadParams
-            
-            for x in parts:
-                if not x.lower() in conf['general'][bot.name()]['ignores']:
-                    conf['general'][bot.name()]['ignores'].append(x.lower())
-            
-            conf.write()
-            
-            return True
+            return self.ign_add(bot, parts)
         
         raise BadParams
+    
+    def ign_add(self, bot, parts):
+        if not len(parts):
+            raise BadParams
+        
+        conf = self.getConfig()
+            
+        for x in parts:
+            if not x.lower() in conf['general'][bot.name()]['ignores']:
+                conf['general'][bot.name()]['ignores'].append(x.lower())
+        
+        conf.write()
+        
+        return True
+    
+    def ign_rem(self, bot, parts):
+        if not len(parts):
+            raise BadParams
+        
+        conf = self.getConfig()
+        
+        success = False
+        
+        for x in parts:
+            try:
+                conf['general'][bot.name()]['ignores'].remove(x.lower())
+                success = True
+            except ValueError:
+                pass
+        
+        conf.write()
+        
+        return True if success else "Not found."
+    
+    def ign_list(self, bot, parts):
+        conf = self.getConfig()
+        
+        if not conf['general'][bot.name()]['ignores']:
+            return "Noone is ignored!"
+        else:
+            return ", ".join(conf['general'][bot.name()]['ignores'])
         
     @Base.trigger("PING")
     def on_ping(self, bot, user, details):
@@ -142,7 +155,7 @@ class Plugin(Base):
         else:
             bot.restart()
         
-    @Base.trigger("SHUTDOWN", "DIAF")
+    @Base.trigger("SHUTDOWN")
     def on_shutdown(self, bot, user, details):
         """SHUTDOWN [message] - Ask the bot to shutdown"""
         user.assertPerm('general.shutdown')
@@ -164,7 +177,7 @@ class Plugin(Base):
         
         msg = "Commands I am aware of: {0}".format(commands)
         
-        bot.msg(details['channel'], msg)
+        bot.msg(user.username(), msg)
         return "Please see the private message I sent you. (this helps keep channel spam down)"
     
     @Base.trigger("HELP")
@@ -230,9 +243,9 @@ class Plugin(Base):
         else:
             bot.join(channel)
         
-    @Base.trigger("PART", "LEAVE")
+    @Base.trigger("LEAVE")
     def on_leave(self, bot, user, details):
-        """PART <channel> [message] - Leave a channel."""
+        """LEAVE <channel> [message] - Leave a channel."""
         parts = details["splitmsg"]
 
         user.assertPerm('general.part')

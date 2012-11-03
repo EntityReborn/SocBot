@@ -29,9 +29,9 @@ class DeferredPrinter(Protocol):
         self.finished.callback(self.data)
 
 class Plugin(Base):
-    @Base.trigger("PY", "PYTHON")
+    @Base.trigger("PYTHON")
     def on_python(self, bot, user, details):
-        """PY <code> - run arbitrary python code (in an offsite sandboxed process)"""
+        """PYTHON <code> - run arbitrary python code (in an offsite sandboxed process)"""
         
         if not details['splitmsg']:
             raise BadParams
