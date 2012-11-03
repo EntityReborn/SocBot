@@ -9,7 +9,7 @@ from socbot.config import ConfigurationFile
 
 from socbot.core import BotFactory
 from socbot.plugincore import PluginCore
-from socbot.log import addLogger
+from socbot.log import addLogger, getLoggers
 from socbot import process
 
 class main(object):
@@ -45,6 +45,11 @@ class main(object):
         for d in self.config['directories'].values():
             if not os.path.exists(d):
                 os.makedirs(d)
+        
+        lvl = getattr(logging, self.config['logging']['level'])
+        
+        for l in getLoggers().values():
+            l.setLevel(lvl)
 
         return self.config
 

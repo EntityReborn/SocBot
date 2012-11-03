@@ -8,22 +8,29 @@ class CyclicalFactoid(factoidbase.FactoidException):
 class OrphanedFactoid(factoidbase.FactoidException): pass
 
 class FactType():
-    UNKNOWN = 0
-    GLOBAL = 1
-    NETWORK = 2
-    CHANNEL = 3
-    
-    def __init__(self, t):
-        self.type = t
+    def __init__(self, p):
+        self.parts = p
     
     def isGlobal(self):
-        return self.type == self.GLOBAL
+        val = len(self.parts) > 0 and self.parts[0].lower() == "-g"
+        return val
     
     def isNetwork(self):
-        return self.type == self.NETWORK
+        val = len(self.parts) > 0 and self.parts[0].lower() == "-n"
+        return val
     
     def isChannel(self):
-        return self.type == self.CHANNEL
+        val = not self.isGlobal() and not self.isNetwork()
+        return val
+    
+    def isValid(self):
+        return self.isGlobal() or self.isNetwork() or self.isChannel()
+    
+    def getParts(self):
+        if self.isGlobal() or self.isNetwork():
+            return self.parts[1:]
+        
+        return self.parts
 
 class Plugin(Base): # Must subclass Base
     def initialize(self, *args, **kwargs):
@@ -38,30 +45,21 @@ class Plugin(Base): # Must subclass Base
         reload(factoidbase)
         
     def factManager(self, bot, channel=None):
-        if not bot.name().lower() in self.factmanagers:
-            confdir = self.getDataDir()
-            
-            if not channel:
-                f = "%s/%s-factoids.db" % (confdir, bot.name().lower())
-            else:
-                f = "%s/%s-%s-factoids.db" % (confdir, bot.name().lower(), channel.lower())
-                
+        if not channel:
+            f = "%s-factoids.db" % (bot.name().lower())
+        else:
+            f = "%s-%s-factoids.db" % (bot.name().lower(), channel.lower())
+
+        if not f in self.factmanagers:
+            confdir = self.getDataDir()  
+                      
             self.manager.log.info("loading factoids from %s" % f)
-            self.factmanagers[bot.name().lower()] = factoidbase.FactoidManager(f)
-        
-        return self.factmanagers[bot.name().lower()]
+            self.factmanagers[f] = factoidbase.FactoidManager("%s/%s" % (confdir, f))
+
+        return self.factmanagers[f]
     
     def getType(self, parts):
-        if not parts:
-            return FactType(FactType.CHANNEL)
-        
-        flag = parts[0].lower()
-        if flag == "-g":
-            return FactType(FactType.GLOBAL)
-        elif flag == "-n":
-            return FactType(FactType.NETWORK)
-        else:
-            return FactType(FactType.UNKNOWN)
+        return FactType(parts)
     
     def getFact(self, bot, details, key, reflist=None):
         key = key.lower()
@@ -126,6 +124,8 @@ class Plugin(Base): # Must subclass Base
             response = "No such factoid! (%s)" % key
         except OrphanedFactoid, e:
             return "Orphaned factoid alias in chain. Not saving. (Orphaned alias is `%s`)" % e
+        except CyclicalFactoid as e:
+            return "Cyclical factoid: %s" % " -> ".join(e.lst)
             
         return str(response)
     
@@ -134,21 +134,29 @@ class Plugin(Base): # Must subclass Base
         """LIST [-g|-n|<channel>] - list available factoids. Use -g to list global factoids, and -n to list network factoids."""
         
         facttype = self.getType(details['splitmsg'])
+        parts = facttype.getParts()
         
         if facttype.isGlobal():
             facts = self.globalmanager.allFacts()
         elif facttype.isNetwork():   
             facts = self.factManager(bot).allFacts()
-        else:
-            if len(details['splitmsg']):
-                channel = details['splitmsg'][0].lower()
+        elif facttype.isChannel():
+            if len(parts):
+                channel = parts[0].lower()
             else:
                 channel = details['channel']
                 
             facts = self.factManager(bot, channel).allFacts()
         
         if facts.count():
-            bot.msg(user.username(), ", ".join(sorted([f.keyword.lower() for f in facts])))
+            if facttype.isChannel():
+                prefix = "Channel factoids for %s: " % details['channel']
+            elif facttype.isNetwork():
+                prefix = "Network factoids for %s: " % bot.name()
+            elif facttype.isGlobal():
+                prefix = "Global factoids: "
+                
+            bot.msg(user.username(), prefix + ", ".join(sorted([f.keyword.lower() for f in facts])))
             
             return "Please see the private message I sent you. (this helps keep channel spam down)"
         else:
@@ -169,38 +177,34 @@ class Plugin(Base): # Must subclass Base
             response = "No such factoid! (%s)" % key
         except OrphanedFactoid, e:
             return "Orphaned factoid alias in chain. Not saving. (Orphaned alias is `%s`)" % e
+        except CyclicalFactoid as e:
+            return "Cyclical factoid: %s" % " -> ".join(e.lst)
             
         return '%s: %s' % (details['splitmsg'][0], str(response))
     
     @Base.trigger("ADD")
     def on_add(self, bot, user, details):
         """ADD [-g|-n] <id> <message> - define a factoid. Use -g to define a global factoid, and -n to define a network factoid"""
-        
-        paramcount = len(details['splitmsg'])
-        
-        if paramcount < 2:
-            raise BadParams
-        
+
         facttype = self.getType(details['splitmsg'])
         
-        if not facttype.isChannel() and paramcount < 3:
+        if not facttype.isValid():
             raise BadParams
+        
+        parts = facttype.getParts()
         
         if facttype.isGlobal():
             user.assertPerm('factoids.global.add')
             manager = self.globalmanager
-            trigger = details['splitmsg'][1]
-            data = ' '.join(details['splitmsg'][2::])
         elif facttype.isNetwork():
             user.assertPerm('factoids.network.add')
             manager = self.factManager(bot)
-            trigger = details['splitmsg'][1]
-            data = ' '.join(details['splitmsg'][2::])
         else:
             user.assertPerm('factoids.add')
             manager = self.factManager(bot, details['channel'])
-            trigger = details['splitmsg'][0]
-            data = ' '.join(details['splitmsg'][1::])
+        
+        trigger = parts[0]
+        data = ' '.join(parts[1::])
            
         try:
             oldfact = manager.getFact(trigger)
@@ -235,33 +239,26 @@ class Plugin(Base): # Must subclass Base
     def on_lock(self, bot, user, details):
         """LOCK [-g|-n] <id> - lock a factoid. Use -g to lock a global factoid, and -n to lock a network factoid"""
         
-        paramcount = len(details['splitmsg'])
+        facttype = self.getType(details['splitmsg'])
         
-        if not paramcount:
+        if not facttype.isValid():
             raise BadParams
         
-        isglobal = details['splitmsg'][0].lower() == "-g"
-        isnetwork = details['splitmsg'][0].lower() == "-n"
+        parts = facttype.getParts()
         
-        if (isglobal or isnetwork) and paramcount < 2:
-            raise BadParams
-        
-        if isglobal:
+        if facttype.isGlobal():
             user.assertPerm('factoids.global.lock')
             manager = self.globalmanager
-            trigger = details['splitmsg'][1]
-        elif isnetwork:
+        elif facttype.isNetwork():
             user.assertPerm('factoids.network.lock')
             manager = self.factManager(bot)
-            trigger = details['splitmsg'][1]
         else:
             user.assertPerm('factoids.lock')
             manager = self.factManager(bot, details['channel'])
-            trigger = details['splitmsg'][0]
         
         oldfact = None
         try:
-            oldfact = manager.getFactObj(trigger)
+            oldfact = manager.getFactObj(parts[0])
         except factoidbase.NoSuchFactoid, e:
             return "No such factoid. (%s)" % e
         
@@ -279,29 +276,24 @@ class Plugin(Base): # Must subclass Base
     def on_unlock(self, bot, user, details):
         """UNLOCK [-g|-n] <id> - lock a factoid. Use -g to unlock a global factoid, and -n to unlock a network factoid"""
         
-        paramcount = len(details['splitmsg'])
+        facttype = self.getType(details['splitmsg'])
         
-        if not paramcount:
+        if not facttype.isValid():
             raise BadParams
         
-        isglobal = details['splitmsg'][0].lower() == "-g"
-        isnetwork = details['splitmsg'][0].lower() == "-n"
+        parts = facttype.getParts()
         
-        if (isglobal or isnetwork) and paramcount < 2:
-            raise BadParams
-        
-        if isglobal:
+        if facttype.isGlobal():
             user.assertPerm('factoids.global.lock')
             manager = self.globalmanager
-            trigger = details['splitmsg'][1]
-        elif isnetwork:
+        elif facttype.isNetwork():
             user.assertPerm('factoids.network.lock')
             manager = self.factManager(bot)
-            trigger = details['splitmsg'][1]
         else:
             user.assertPerm('factoids.lock')
             manager = self.factManager(bot, details['channel'])
-            trigger = details['splitmsg'][0]
+            
+        trigger = parts[0]
             
         oldfact = None
         try:
@@ -323,27 +315,26 @@ class Plugin(Base): # Must subclass Base
     def on_remove(self, bot, user, details):
         """REM [-g|-n] <id> - remove a factoid. Use -g to remove a global factoid, and -n for a network factoid"""
         
-        paramcount = len(details['splitmsg'])
+        facttype = self.getType(details['splitmsg'])
         
-        if paramcount < 1:
+        if not facttype.isValid():
             raise BadParams
         
-        isglobal = details['splitmsg'][0].lower() == "-g"
-        isnetwork = details['splitmsg'][0].lower() == "-n"
+        parts = facttype.getParts()
         
-        if paramcount < 2 and (isglobal or isnetwork):
-            raise BadParams
+        trigger = parts[0]
         
         try:
-            if isglobal:
+            if facttype.isGlobal():
                 user.assertPerm('factoids.global.remove')
-                self.globalmanager.remFact(details['splitmsg'][1])
-            elif isnetwork:
+                self.globalmanager.remFact(trigger)
+            elif facttype.isNetwork():
                 user.assertPerm('factoids.network.remove')
-                self.factManager(bot).remFact(details['splitmsg'][0])
+                self.factManager(bot).remFact(trigger)
             else:
                 user.assertPerm('factoids.remove')
-                self.factManager(bot, details['channel']).remFact(details['splitmsg'][0])
+                self.factManager(bot, details['channel']).remFact(trigger)
+                
         except factoidbase.NoSuchFactoid, e:
             return "Unknown factoid, '%s'" % e
         

@@ -135,119 +135,120 @@ class API(object):
         return True
 
     def onPrivmsg(self, user, channel, msg):
-        msg = msg.strip()
-        nick = user.split("!")[0]
-        wasprivate = False
-
-        if not msg:
-            return
-
-        match = re.search('^[ ]*{0}[:,][ ]*(.*)$'.format(self.connection.nickname.lower()), msg)
-        
-        if channel.lower() != self.connection.nickname.lower():
-            if match and self.generalConfig()['nicktrigger'].lower() == 'true':
-                msg = match.group(1)
-            elif msg[0] not in self.generalConfig()['commandchars']:
-                return
-        else:
-            wasprivate = True
-            channel = user.split("!")[0]
-            
-        if msg[0] in self.generalConfig()['commandchars']:
-            msg = msg[1:]
-                
-        parts = msg.partition(" ")
-        split = parts[2].split()
-        trigger = parts[0].upper()
-        
-        if not trigger:
-            return
-        
-        usr = self.users.getUser(nick.lower())
-        
-        details = {
-            "fullmsg": msg,
-            "fulluser": user,
-            "splitmsg": split,
-            "trigger": trigger.lower(),
-            "channel": channel.lower(),
-            "wasprivate": wasprivate
-        }
-        
-        prefilters = self.plugins.getMsgPrefilters()
-        
-        for func in prefilters:
-            try:
-                retn = func(self, usr, details)
-                
-                if retn and isinstance(retn, dict):
-                    details = retn
-                    
-            except StopProcessing:
-                return
-                    
-            except Exception:
-                self.log.exception("General prefilter exception")
-                
-        trigger = details['trigger'].upper()
-        
         try:
-            # See if a trigger exists.
-            retn = self.plugins.getTrigger(trigger)
-        except MultipleTriggers as trigs:
-            # Multiple triggers exist, lets list them to the user and die.
-            plugs = [x[0].getName() for x in trigs.trackers]
+            msg = msg.strip()
+            nick = user.split("!")[0]
+            wasprivate = False
+    
+            if not msg:
+                return
+    
+            match = re.search('^[ ]*{0}[:,][ ]*(.*)$'.format(self.connection.nickname.lower()), msg)
             
-            s = "The command '%s' is defined in more than one plugin: %s." % (trigger.lower(), ", ".join(plugs))
-            self.sendResult(s, channel)
-                    
-            return
-        
-        if retn:
-            # We found a trigger, lets set it up for use.
-            tracker, func = retn
-            self.log.debug("trigger: {0}".format(trigger))
-        else:
-            # No trigger found, lets see if there's a tracker (plugin) loaded with that name
-            tracker = self.plugins.getTracker(trigger)
-        
-            if tracker:
-                # Found a plugin with that name
+            if channel.lower() != self.connection.nickname.lower():
+                if match and self.generalConfig()['nicktrigger'].lower() == 'true':
+                    msg = match.group(1)
+                elif msg[0] not in self.generalConfig()['commandchars']:
+                    return
+            else:
+                wasprivate = True
+                channel = user.split("!")[0]
                 
-                if details['splitmsg']:
-                    # An argument was given, lets use it as a trigger to look for.
+            if msg[0] in self.generalConfig()['commandchars']:
+                msg = msg[1:]
                     
-                    trigger = details['splitmsg'].pop(0)
-                    details['trigger'] = trigger
-                    func = tracker.getTrigger(trigger)
+            parts = msg.partition(" ")
+            split = parts[2].split()
+            trigger = parts[0].upper()
+            
+            if not trigger:
+                return
+            
+            usr = self.users.getUser(nick.lower())
+            
+            details = {
+                "fullmsg": msg,
+                "fulluser": user,
+                "splitmsg": split,
+                "trigger": trigger.lower(),
+                "channel": channel.lower(),
+                "wasprivate": wasprivate
+            }
+            
+            prefilters = self.plugins.getMsgPrefilters()
+            
+            for func in prefilters:
+                try:
+                    retn = func(self, usr, details)
                     
-                    if not func:
-                        # But that trigger doesn't exist!
+                    if retn and isinstance(retn, dict):
+                        details = retn
                         
-                        s = "The plugin '%s' does not have a '%s' command." % (tracker.getName().capitalize(), trigger)
+                except StopProcessing:
+                    return
+                        
+                except Exception:
+                    self.log.exception("General prefilter exception")
+                    
+            trigger = details['trigger'].upper()
+            
+            try:
+                # See if a trigger exists.
+                retn = self.plugins.getTrigger(trigger)
+            except MultipleTriggers as trigs:
+                # Multiple triggers exist, lets list them to the user and die.
+                plugs = [x[0].getName() for x in trigs.trackers]
+                
+                s = "The command '%s' is defined in more than one plugin: %s." % (trigger.lower(), ", ".join(plugs))
+                self.sendResult(s, channel)
+                        
+                return
+            
+            if retn:
+                # We found a trigger, lets set it up for use.
+                tracker, func = retn
+                self.log.debug("trigger: {0}".format(trigger))
+            else:
+                # No trigger found, lets see if there's a tracker (plugin) loaded with that name
+                tracker = self.plugins.getTracker(trigger)
+            
+                if tracker:
+                    # Found a plugin with that name
+                    
+                    if details['splitmsg']:
+                        # An argument was given, lets use it as a trigger to look for.
+                        
+                        trigger = details['splitmsg'].pop(0)
+                        details['trigger'] = trigger
+                        func = tracker.getTrigger(trigger)
+                        
+                        if not func:
+                            # But that trigger doesn't exist!
+                            
+                            s = "The plugin '%s' does not have a '%s' command." % (tracker.getName().capitalize(), trigger)
+                            self.sendResult(s, channel)
+                            
+                            return
+                    else:
+                        # Lets list the triggers this plugin has exposed publicly.
+                        
+                        trigs = [x.lower() for x in tracker.getTriggers()]
+                        s = "The plugin '%s' has the following commands available: %s" % (tracker.getName(), ", ".join(trigs))
                         self.sendResult(s, channel)
                         
                         return
                 else:
-                    # Lets list the triggers this plugin has exposed publicly.
+                    # Nothing found. Lets see if any plugins do anything here.
                     
-                    trigs = [x.lower() for x in tracker.getTriggers()]
-                    s = "The plugin '%s' has the following commands available: %s" % (tracker.getName(), ", ".join(trigs))
-                    self.sendResult(s, channel)
-                    
+                    self.plugins.triggerEvent("TRIG_UNKNOWN", self, usr, details)
                     return
-            else:
-                # Nothing found. Lets see if any plugins do anything here.
-                
-                self.plugins.triggerEvent("TRIG_UNKNOWN", self, usr, details)
-                return
-                
-        try:
+
             # Whelp. Got this far, have a func to use, lets fire it, allowing for async stuff.
             
             d = maybeDeferred(func, self, usr, details)
             d.addCallback(self.sendResult, channel)
             d.addErrback(self.sendError, channel, func, nick)
+            
         except Exception:
             self.log.exception("General exception")
         
@@ -268,8 +269,8 @@ class API(object):
                 self.msg(nick, message)
         else:
             self.log.error(err.getTraceback())
-            self.msg(target, "Exception in plugin function {0} ({1}). ".format(func.__name__, err.getErrorMessage()) + \
-                    "Please check the logs or notify someone who manages me.")
+            self.msg(target, "Exception calling that command. " + \
+                     "Please check the logs or notify someone who manages me.")
                 
     def sendResult(self, msg, target):
         if msg:

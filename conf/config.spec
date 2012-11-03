@@ -4,7 +4,7 @@
 	permerrornotification = option(PM, NOTICE, CHANNEL, default=NOTICE)
 	
 [logging]
-    level = option(DEBUG, INFO, WARNING, ERROR, EXCEPTION, default=WARNING)
+    level = option(DEBUG, INFO, WARNING, ERROR, EXCEPTION, default=INFO)
 
 [servers]
     [[__many__]]
