@@ -230,11 +230,13 @@ class Plugin(Base):
     
     @Base.trigger("ADDMASK")
     def in_addmask(self, bot, user, details):
+        """ADDMASK [other] - add the mask of the caller, or the other if specified, to the list of automatic login hostmasks"""
+        
         nick, hostmask = details['fulluser'].split("!")
         parts = details["splitmsg"]
         
         if parts:
-            user.assertPerm('users.addmask.other')
+            user.assertPerm('users.hostmasks.add.other')
             
             usr = parts.pop(0)
             
@@ -254,8 +256,23 @@ class Plugin(Base):
             
     @Base.trigger("REMMASK")
     def in_remmask(self, bot, user, details):
-        nick, hostmask = details['fulluser'].split("!")
+        """REMMASK [other] - remove the mask of the caller, or the other if specified, from the list of automatic login hostmasks"""
         
+        nick, hostmask = details['fulluser'].split("!")
+        parts = details["splitmsg"]
+        
+        if parts:
+            user.assertPerm('users.hostmasks.remove.other')
+            
+            usr = parts.pop(0)
+            
+            try:
+                user = bot.users.getRegistration(usr.lower())
+            except NoSuchUser:
+                return "Unknown user."
+            
+            hostmask = bot.users.getUser(usr.lower()).hostmask
+            
         try:
             user.remHostmask(hostmask)
         except UserNotLoggedIn:
@@ -281,23 +298,57 @@ class Plugin(Base):
         
         return True
     
+    @Base.trigger("LISTPERMS")
+    def in_listperm(self, bot, user, details):
+        """LISTPERM <user> - List a user's permissions."""
+         
+        if details['splitmsg']:
+            nick = details['splitmsg'].pop(0).lower()
+            
+            user.assertPerm("users.permissions.list.other")
+            
+            try:
+                user = bot.users.getRegistration(nick)
+            except NoSuchUser:
+                return "Unknown user."
+        
+        return "Permissions for %s: %s" % (user.username(), ", ".join(sorted(user.allPerms())))
+    
+    @Base.trigger("LISTMASKS")
+    def in_listmasks(self, bot, user, details):
+        """LISTMASKS <user> - List a user's registered hostmasks."""
+        
+        if details['splitmsg']:
+            nick = details['splitmsg'].pop(0).lower()
+            
+            user.assertPerm("users.hostmasks.list.other")
+            
+            try:
+                user = bot.users.getRegistration(nick)
+            except NoSuchUser:
+                return "Unknown user."
+        
+        return "Hostmasks for %s: %s" % (user.username(), ", ".join(sorted(user.allHostmasks())))
+    
     @Base.trigger("HASPERM")
     def on_hasperm(self, bot, user, details):
-        """HASPERM <user> <permnode> - Check if a user has a specified user permission"""
-        if len(details['splitmsg']) == 2:
+        """HASPERM [<user>] <permnode> - Check if a user has a specified user permission"""
+        
+        if not details['splitmsg']:
+            raise BadParams
+        
+        if len(details['splitmsg']) >= 2:
             try:
-                usr = bot.users.getUserInfo(details['splitmsg'].pop(0).lower())
+                user = bot.users.getUserInfo(details['splitmsg'].pop(0).lower())
             except NoSuchUser:
                 return "Unknown user."
             
-            retn = usr.hasPerm(details['splitmsg'][0])
-            
-            if retn:
-                return "User has this permission."
-            
-            return "User does NOT have this permission."
-        else:
-            raise BadParams
+        retn = user.hasPerm(details['splitmsg'][0])
+        
+        if retn:
+            return "User has this permission."
+        
+        return "User does NOT have this permission."
             
     @Base.trigger("REMPERM")
     def in_remperm(self, bot, user, details):
@@ -307,6 +358,9 @@ class Plugin(Base):
         if len(details['splitmsg']) >= 2:
             try:
                 usr = bot.users.getUserInfo(details['splitmsg'].pop(0).lower())
+                
+                if usr == user:
+                    return "Don't remove your own permissions!"
             except NoSuchUser:
                 return "Unknown user."
             
@@ -320,6 +374,7 @@ class Plugin(Base):
     @Base.trigger("USERINFO")
     def on_userinfo(self, bot, user, details):
         """USERINFO <nick> - Show info for a given user"""
+        
         parts = details["splitmsg"]
         command = details["trigger"]
 

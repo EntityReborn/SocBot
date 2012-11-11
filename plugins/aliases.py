@@ -80,7 +80,7 @@ class Plugin(Base):
         #    "wasprivate": wasprivate
         #}
         
-        if details['trigger'].lower() in aliases:
+        if not details['trigger'].startswith("@PLUG") and details['trigger'].lower() in aliases:
             data = aliases[details['trigger'].lower()]
             msg = details['fullmsg']
             parts = msg.partition(" ")

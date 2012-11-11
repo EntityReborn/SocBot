@@ -211,6 +211,10 @@ class API(object):
             else:
                 # No trigger found, lets see if there's a tracker (plugin) loaded with that name
                 tracker = self.plugins.getTracker(trigger)
+                
+                if not tracker and trigger.startswith("@PLUG:"):
+                    trigger = trigger.partition(":")[2]
+                    tracker = self.plugins.getTracker(trigger)
             
                 if tracker:
                     # Found a plugin with that name
@@ -225,7 +229,7 @@ class API(object):
                         if not func:
                             # But that trigger doesn't exist!
                             
-                            s = "The plugin '%s' does not have a '%s' command." % (tracker.getName().capitalize(), trigger)
+                            s = "The plugin '%s' does not have the command '%s'." % (tracker.getName().capitalize(), trigger)
                             self.sendResult(s, channel)
                             
                             return

@@ -171,6 +171,7 @@ class Plugin(Base):
     @Base.trigger("TELL")
     def on_tell(self, bot, user, details):
         """TELL <nick> <text> - tell a user something when they are next seen"""
+        
         parts = details["splitmsg"]
         channel = details["channel"]
         

@@ -57,6 +57,9 @@ class UnregisteredUser(object):
     
     def addPerm(self, node):
         raise UserNotLoggedIn
+    
+    def allPerms(self):
+        return []
             
     def remPerm(self, node):
         raise UserNotLoggedIn
@@ -117,6 +120,9 @@ class RegisteredUser(Base):
             return True
     
         return False
+    
+    def allPerms(self):
+        return self.perms
             
     def remPerm(self, node):
         if node.lower() in self.perms:
@@ -162,6 +168,9 @@ class RegisteredUser(Base):
             return True
         
         return False
+    
+    def allHostmasks(self):
+        return self.hostmasks
             
     def remHostmask(self, hostmask):
         if hostmask.lower() in self.hostmasks:
@@ -267,6 +276,12 @@ class User(object):
     
     def hasPerm(self, node, default=False):
         return self.registration.hasPerm(node, default)
+    
+    def allPerms(self):
+        return self.registration.allPerms()
+    
+    def allHostmasks(self):
+        return self.registration.allHostmasks()
     
     def username(self):
         if self.isLoggedIn():

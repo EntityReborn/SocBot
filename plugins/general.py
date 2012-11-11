@@ -1,4 +1,5 @@
 from socbot.pluginbase import Base, BadParams, StopProcessing
+from socbot.plugincore import MultipleTriggers
 from socbot.tools import isChannel
 
 import datetime, fnmatch
@@ -186,15 +187,51 @@ class Plugin(Base):
         if not details['splitmsg']:
             raise BadParams
         
-        trigger = details['splitmsg'][0]
+        trigger = details['splitmsg'].pop(0)
         
-        func = self.manager.core.getTrigger(trigger)
+        try:
+            func = self.manager.core.getTrigger(trigger)
+        except MultipleTriggers as trigs:
+            # Multiple triggers exist, lets list them to the user and die.
+            plugs = [
+                x[0].getName() for x in trigs.trackers
+            ]
+            
+            s = "The command '%s' is defined in more than one plugin: %s." % (trigger.lower(), ", ".join(plugs))
+            return s
         
         if not func:
-            return "No such trigger (%s)" % trigger
+            # No trigger found, lets see if there's a tracker (plugin) loaded with that name
+            tracker = bot.plugins.getTracker(trigger)
+        
+            if tracker:
+                # Found a plugin with that name
+                
+                if details['splitmsg']:
+                    # An argument was given, lets use it as a trigger to look for.
+                    
+                    trigger = details['splitmsg'].pop(0)
+                    details['trigger'] = trigger
+                    func = tracker.getTrigger(trigger)
+                    
+                    if not func:
+                        # But that trigger doesn't exist!
+                        
+                        s = "The plugin '%s' does not have the command '%s'." % (tracker.getName().capitalize(), trigger)
+                        return s
+                    
+                else:
+                    # Lets list the triggers this plugin has exposed publicly.
+                    
+                    trigs = [x.lower() for x in tracker.getTriggers()]
+                    s = "The plugin '%s' has the following commands available: %s" % (tracker.getName(), ", ".join(trigs))
+                    return s
+                
+            else:
+                return "No such trigger (%s)" % trigger
         
         if not func.__doc__:
-            return "This trigger does not have a help text associated with it."
+            return "This trigger does not have any help text associated with it."
         
         return func.__doc__ 
         
