@@ -64,7 +64,7 @@ class SeenManager(object):
         channel = channel.lower()
         type = type.upper()
         
-        seen = Seen(target, channel, datetime.datetime.now(), type, unicode(data))
+        seen = Seen(target, channel, datetime.datetime.now(), type, data.decode('UTF-8'))
         self.session.add(seen)
         
         try:
@@ -103,7 +103,7 @@ class SeenManager(object):
         channel = channel.lower()
         sender = sender.lower()
 
-        tell = Tell(target, sender, channel, datetime.datetime.now(), text)
+        tell = Tell(target, sender, channel, datetime.datetime.now(), text.decode('UTF-8'))
         self.session.add(tell)
 
         try:

@@ -62,7 +62,7 @@ class Plugin(Base): # Must subclass Base
         return FactType(parts)
     
     def getFact(self, bot, details, key, reflist=None):
-        key = key.lower()
+        key = key.encode('UTF-8').lower()
         
         if reflist == None:
             reflist = []
@@ -81,7 +81,7 @@ class Plugin(Base): # Must subclass Base
             except factoidbase.NoSuchFactoid, e:
                 fact = self.globalmanager.getFact(key)
                 
-        response = fact.response
+        response = fact.getResponse()
         
         alias = False
         if response.startswith('@'):
@@ -93,9 +93,6 @@ class Plugin(Base): # Must subclass Base
                 raise OrphanedFactoid, e
             
             reflist.append("@"+alias)
-            
-        if alias:
-            return response
                 
         return response
     

@@ -122,7 +122,7 @@ class Plugin(Base):
         for tell in tells:
             time = datetime.datetime.strftime(tell.time, '%c')
             text = "{0} in {1} asked to tell you the following: {2} ({3})".format(
-                tell.sender, tell.channel, tell.text, time)
+                tell.sender, tell.channel, tell.text.encode('UTF-8'), time)
             tosend.append(text)
         
         if tosend:
