@@ -10,11 +10,8 @@ class Plugin(Base):
             raise BadParams
         
         conf = self.getConfig()
+        aliases = conf['general']
         
-        if not bot.name() in conf['general']:
-            conf['general'][bot.name()] = {}
-            
-        aliases = conf['general'][bot.name()]
         aliases[details['splitmsg'][0].lower()] = " ".join(details['splitmsg'][1:])
         
         conf.write()
@@ -26,10 +23,10 @@ class Plugin(Base):
         """LIST - lists aliases"""
         conf = self.getConfig()
         
-        if not bot.name() in conf['general']:
+        if not conf['general']:
             return "No aliases are defined."
             
-        aliases = conf['general'][bot.name()]
+        aliases = conf['general']
         keyvalues = []
         
         for key, value in aliases.iteritems():
@@ -47,14 +44,14 @@ class Plugin(Base):
         
         conf = self.getConfig()
         
-        if not bot.name() in conf['general']:
+        if not conf['general']:
             return "No aliases are defined."
             
-        aliases = conf['general'][bot.name()]
+        aliases = conf['general']
         trigger = details['splitmsg'][0].lower()
         
         if not trigger in aliases:
-            return "That isn't an alias that I am aware of."
+            return "That isn't an alias that I know."
         
         del aliases[trigger]
         
@@ -66,10 +63,10 @@ class Plugin(Base):
     def pflt_alias(self, bot, user, details):
         conf = self.getConfig()
         
-        if not bot.name() in conf['general']:
+        if not conf['general']:
             return
         
-        aliases = conf['general'][bot.name()]
+        aliases = conf['general']
         
         #details = {
         #    "fullmsg": msg,

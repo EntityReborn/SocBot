@@ -1,3 +1,2 @@
 [general]
-    [[__many__]]
-        __many__ = string()
+    __many__ = string()

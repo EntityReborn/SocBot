@@ -15,18 +15,18 @@ class Factoid(Base):
     lockedby = Column(String, nullable=True, default="")
 
     def __init__(self, key, response, createdby="", alteredby=None, locked=False, lockedby=None):
-        self.keyword = key.encode('UTF-8')
-        self.response = response.encode('UTF-8')
+        self.keyword = key
+        self.response = response
         self.createdby = createdby
         self.alteredby = alteredby
         self.locked = locked
         self.lockedby = lockedby
         
     def getResponse(self):
-        return self.response.encode('UTF-8')
+        return self.response
     
     def getKey(self):
-        return self.keyword.encode('UTF-8')
+        return self.keyword
 
     def __repr__(self):
         return "<Factoid('%s', '%s', '%s', '%s', %s, '%s')>" % \
@@ -53,8 +53,7 @@ class FactoidManager(object):
         return self.session.query(Factoid)
     
     def addFact(self, key, response, replace=False):
-        key = key.lower().decode('UTF-8')
-        response = response.decode('UTF-8')
+        key = key.lower()
         
         exists = self.session.query(Factoid).filter_by(keyword=key)
         

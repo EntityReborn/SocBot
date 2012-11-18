@@ -33,7 +33,7 @@ class UserInfo(object):
                     for text in tosend:
                         self.bot.msg(self.nick, text)
                 else:
-                    tosend = ["Things people wanted you to know:",] + tosend + \
+                    tosend = ["Things people wanted you to know:", ] + tosend + \
                         ['(It is currently %s)' % datetime.datetime.strftime(datetime.datetime.now(), '%c')]
                     url = pastie.pastie("\n".join(tosend))
                     self.bot.msg(self.nick, "Please check out %s for a list of things people wanted to tell you." % url)
@@ -81,21 +81,14 @@ pattern = re.compile(r"^(?P<nick>[^ ]+)(?:\s+(?P<channel>#[^ ]+))?(?:\s+(?P<coun
 
 class Plugin(Base):
     def initialize(self, *args, **kwargs):
-        self.seenmanagers = {}
-        
-    def seenManager(self, bot):
-        if not bot.name().lower() in self.seenmanagers:
-            data = self.getDataDir()
-            self.seenmanagers[bot.name().lower()] = seenbase.SeenManager("%s/%s-seen.db" % (data, bot.name().lower()))
-        
-        return self.seenmanagers[bot.name().lower()]
+        self.seenmanager = seenbase.SeenManager("%s/seen.db" % self.getDataDir())
     
     @Base.event("NICK", "PRIVMSG", "JOIN", "PART", "QUIT")
     def on_updateseen(self, bot, command, prefix, params):
         nick = prefix.split("!")[0].lower()
         
         if len(params) > 1:
-            msg = params[1]
+            msg = params[1].decode("UTF-8")
         else:
             msg = ""
 
@@ -106,16 +99,15 @@ class Plugin(Base):
             return
         
         if command in ["NICK", "QUIT"]:
-            self.seenManager(bot).addSeen(nick, msg, command, channel)
+            self.seenmanager.addSeen(nick, msg, command, channel)
         else:
-            self.seenManager(bot).addSeen(nick, channel, command, msg)
+            self.seenmanager.addSeen(nick, channel, command, msg)
         
         if command == 'PRIVMSG':
             self.checkTell(bot, nick)
         
     def checkTell(self, bot, nick):
-        manager = self.seenManager(bot)
-        tells = manager.getTells(nick)
+        tells = self.seenmanager.getTells(nick)
         
         tosend = []
         
@@ -130,7 +122,7 @@ class Plugin(Base):
                 for text in tosend:
                     bot.msg(nick, text)
             else:
-                tosend = ["Things people wanted you to know:",] + tosend + \
+                tosend = ["Things people wanted you to know:", ] + tosend + \
                     ['(It is currently %s)' % datetime.datetime.strftime(datetime.datetime.now(), '%c')]
                 
                 url = pastie.pastie("\n".join(tosend))
@@ -140,7 +132,7 @@ class Plugin(Base):
                 
                 url.addCallback(sendmsg)
                 
-            manager.clearTells(nick)
+            self.seenmanager.clearTells(nick)
                 
     def seenLine(self, data):
         if not data:
@@ -178,7 +170,7 @@ class Plugin(Base):
         if len(parts) >= 2:
             nick = parts[0].lower()
             
-            self.seenManager(bot).addTell(nick, user.nick, channel, " ".join(parts[1::]))
+            self.seenmanager.addTell(nick, user.nick, channel, " ".join(parts[1::]))
             
             return "I'll let them know!"
         
@@ -207,13 +199,12 @@ class Plugin(Base):
             return "I am not in {0}".format(channel)
         
         count = match.group('count')
-        manager = self.seenManager(bot)
         
         if not count:
-            data = manager.getLastSeen(nick, channel)
+            data = self.seenmanager.getLastSeen(nick, channel)
             return self.seenLine(data)
         else:
-            data = manager.getRangedSeen(nick, channel, int(count))
+            data = self.seenmanager.getRangedSeen(nick, channel, int(count))
             tosend = []
                 
             for item in data:

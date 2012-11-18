@@ -5,11 +5,18 @@ from socbot.tools import isChannel
 import datetime, fnmatch
 
 class Plugin(Base):
+    def initialize(self, *args, **kwargs):
+        conf = self.getConfig()
+        
+        if not 'ignores' in conf['general']:
+            conf['general']['ignores'] = []
+            conf.write()
+            
     @Base.msgprefilter(0)
     def pflt_mignore(self, bot, user, details):
         conf = self.getConfig()
         
-        ignores = conf['general'][bot.name()]['ignores']
+        ignores = conf['general']['ignores']
         
         for ignore in ignores:
             if fnmatch.fnmatch(details['fulluser'].lower(), ignore.lower()) and \
@@ -20,22 +27,13 @@ class Plugin(Base):
     def pflt_eignore(self, bot, command, prefix, params):
         conf = self.getConfig()
         
-        ignores = conf['general'][bot.name()]['ignores']
+        ignores = conf['general']['ignores']
         user = bot.users.getUser(prefix.split("!")[0])
         
         for ignore in ignores:
             if fnmatch.fnmatch(prefix.lower(), ignore.lower()) and \
                     not user.hasPerm('general.ignore.bypass'):
                 raise StopProcessing
-            
-    @Base.event("RPL_WELCOME")
-    def on_joined(self, bot, command, prefix, params):
-        conf = self.getConfig()
-        
-        if not bot.name() in conf['general'] and \
-        not 'ignores' in conf['general'][bot.name()]:
-            conf['general'][bot.name()] = {"ignores":[]}
-            conf.write()
             
     @Base.trigger("IGNORE")
     def on_ignore(self, bot, user, details):
@@ -47,8 +45,7 @@ class Plugin(Base):
         command = parts.pop(0).upper()
         
         if command == "LIST":
-            return self.ign_list(bot, parts
-                                 )
+            return self.ign_list(bot, parts)
         elif command == "REM":
             user.assertPerm('general.ignore.remove')
             return self.ign_rem(bot, parts)
@@ -66,8 +63,8 @@ class Plugin(Base):
         conf = self.getConfig()
             
         for x in parts:
-            if not x.lower() in conf['general'][bot.name()]['ignores']:
-                conf['general'][bot.name()]['ignores'].append(x.lower())
+            if not x.lower() in conf['general']['ignores']:
+                conf['general']['ignores'].append(x.lower())
         
         conf.write()
         
@@ -83,7 +80,7 @@ class Plugin(Base):
         
         for x in parts:
             try:
-                conf['general'][bot.name()]['ignores'].remove(x.lower())
+                conf['general']['ignores'].remove(x.lower())
                 success = True
             except ValueError:
                 pass
@@ -95,10 +92,10 @@ class Plugin(Base):
     def ign_list(self, bot, parts):
         conf = self.getConfig()
         
-        if not conf['general'][bot.name()]['ignores']:
+        if not conf['general']['ignores']:
             return "Noone is ignored!"
         else:
-            return ", ".join(conf['general'][bot.name()]['ignores'])
+            return ", ".join(conf['general']['ignores'])
         
     @Base.trigger("PING")
     def on_ping(self, bot, user, details):

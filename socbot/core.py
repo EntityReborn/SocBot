@@ -190,14 +190,15 @@ class BotFactory(protocol.ReconnectingClientFactory):
     ping_interval = 60.0
     pong_timeout = 60.0
 
-    def __init__(self, name, config, sharedstate, main):
-        self.name = name
+    def __init__(self, config, sharedstate, main):
+        self.name = config['name']
         self.sharedstate = sharedstate
+        self.instance = None
         self.core = main
         self.config = config
         self.shuttingdown = False
         self.connection = None
-        self.users = UserDB('conf/%s-users.db' % name.lower())
+        self.users = UserDB('conf/users.db')
 
     def clientConnectionLost(self, connector, unused_reason):
         self.log.info("connection lost")
@@ -214,10 +215,12 @@ class BotFactory(protocol.ReconnectingClientFactory):
 
         p = protocol.ReconnectingClientFactory.buildProtocol(self, addr)
         p.nickname = self.config['nickname']
-        p.log = logging.getLogger("socbot.connection."+self.name)
+        p.log = logging.getLogger("socbot.connection")
         p.api = API(p, self.users, self.sharedstate['pluginmanager'])
-        p.api.log = logging.getLogger("socbot.connection."+self.name)
-
+        p.api.log = logging.getLogger("socbot.connection")
+        
+        self.sharedstate = p
+        
         return p
 
     def onConnected(self, bot):

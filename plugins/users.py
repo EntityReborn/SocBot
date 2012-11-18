@@ -1,6 +1,6 @@
 from socbot.pluginbase import Base, BadParams
 from socbot.userdb import prefixes, BadEmail, NoSuchUser, BadPass
-from socbot.userdb import UserAlreadyExists, UserNotLoggedIn, NoSuchUser
+from socbot.userdb import UserAlreadyExists, UserNotLoggedIn
 
 from twisted.words.protocols.irc import parseModes
 
@@ -12,10 +12,9 @@ class Plugin(Base):
     def afterReload(self):
         sstate = self.manager.sstate
         
-        for name, botlist in sstate["bots"].iteritems():
-            for bot in botlist:
-                for chan in bot.channels:
-                    bot.sendLine('WHO %s'%chan)
+        bot = sstate["bot"]
+        for chan in bot.channels:
+            bot.sendLine('WHO %s'%chan)
 
     @Base.event("MODE")
     def on_mode(self, bot, command, prefix, params):

@@ -4,11 +4,11 @@
 [general]
 	commandchars = '%'
 
-[servers]
-	[[Freenode]]
-		host = 'irc.freenode.net'
-		nickname = 'SocBawt'
-		[[[channels]]]
-			[[[["#botters-test"]]]]
-				autojoin = True
+[connection]
+    name = 'Freenode'
+	host = 'irc.freenode.net'
+	nickname = 'SocBawt'
+	[[channels]]
+		[[["#botters-test"]]]
+			autojoin = True
 

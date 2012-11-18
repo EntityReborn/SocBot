@@ -52,6 +52,9 @@ class API(object):
         channel = channel.lower()
         config = self.chanConfig(channel)
         
+        if isinstance(msg, unicode):
+            msg = msg.encode('UTF-8')
+        
         if updateconfig:
             config['autojoin'] = False
             
@@ -60,10 +63,16 @@ class API(object):
         self.connection.leave(channel, msg)
 
     def sendLine(self, line):
+        if isinstance(line, unicode):
+            line = line.encode('UTF-8')
+            
         self.connection.sendLine(line)
     
     def msg(self, target, msg, revd=False):
         # revd is for use when calling from a deferred.
+        if isinstance(msg, unicode):
+            msg = msg.encode('UTF-8')
+            
         if not revd:
             self.connection.msg(target, msg)
         else: 
@@ -71,6 +80,9 @@ class API(object):
             
     def notice(self, target, msg, revd=False):
         # revd is for use when calling from a deferred.
+        if isinstance(msg, unicode):
+            msg = msg.encode('UTF-8')
+            
         if not revd:
             self.connection.notice(target, msg)
         else:
@@ -78,6 +90,9 @@ class API(object):
         
     def action(self, target, msg, revd=False):
         # revd is for use when calling from a deferred.
+        if isinstance(msg, unicode):
+            msg = msg.encode('UTF-8')
+            
         if not revd:
             self.connection.msg(target, u'\x01ACTION %s\x01'%msg)
         else:
@@ -136,6 +151,7 @@ class API(object):
 
     def onPrivmsg(self, user, channel, msg):
         try:
+            msg = msg.decode('UTF-8')
             msg = msg.strip()
             nick = user.split("!")[0]
             wasprivate = False

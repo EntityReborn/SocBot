@@ -15,11 +15,10 @@ from socbot import process
 class main(object):
     def __init__(self, sstate):
         self.sstate = sstate
-
         self.sstate["exitcode"] = 0
+        self.factory = None
 
         log.info("base directory is {0}".format(self.sstate["basedir"]))
-        self.factories = {}
 
     def load(self):
         if not self.loadConfig(): return False
@@ -65,38 +64,34 @@ class main(object):
         return pm
 
     def run(self):
-        if "servers" in self.config:
-            for name, config in self.config["servers"].iteritems():
-                f = BotFactory(name, config, self.sstate, self)
-                self.factories[name.lower()] = f
-                
-                botService = internet.TCPClient(config["host"], config["port"], f)
-                log.info("Connecting to {0} ({1})".format(name, config["host"]))
-                botService.startService()
+        config = self.config['connection']
+        
+        f = BotFactory(config, self.sstate, self)
+        self.factory = f
+        
+        botService = internet.TCPClient(config["host"], config["port"], f)
+        log.info("Connecting to {0} ({1})".format(config['name'], config["host"]))
+        botService.startService()
 
-                reactor.addSystemEventTrigger('before', 'shutdown',
-                                              botService.stopService)
+        reactor.addSystemEventTrigger('before', 'shutdown',
+                                      botService.stopService)
 
-            reactor.addSystemEventTrigger('before', 'shutdown', self.shutdown)
+        reactor.addSystemEventTrigger('before', 'shutdown', self.shutdown)
 
-            reactor.run()
-            sys.exit(self.sstate['exitcode'])
-        else:
-            log.error("Nothing to connect to!\nCheck your socbot.conf file!")
+        reactor.run()
+        sys.exit(self.sstate['exitcode'])
             
     def connectionLost(self, lostconnection):
-        for f in self.factories.values():
-            if f.connection or not f.shuttingdown:
-                return
+        if self.factory.connection or not self.factory.shuttingdown:
+            return
             
         reactor.stop()
 
     def shutdown(self, msg="Shutdown requested."):
-        for factory in self.factories.values(): # [bot, bot, bot, ...]
-            try:
-                factory.connection.quit(msg)
-            except Exception:
-                pass
+        try:
+            self.factory.connection.quit(msg)
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     import argparse, signal
