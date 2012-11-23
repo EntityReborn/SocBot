@@ -1,4 +1,3 @@
 [general]
 name = Source# human friendly name
 modulefile = source.py# Actual module to import to load plugins
-enabled = True

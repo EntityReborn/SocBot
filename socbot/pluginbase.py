@@ -92,9 +92,29 @@ class Base(object):
         return call
     
     @classmethod
+    def msgpostfilter(cls, priority=Priority.NORMAL):
+        def call(func):
+            func.type = "msgpostfilter"
+            func.priority = priority
+            
+            return func
+        
+        return call
+    
+    @classmethod
     def eventprefilter(cls, priority=Priority.NORMAL):
         def call(func):
             func.type = "eventprefilter"
+            func.priority = priority
+            
+            return func
+        
+        return call
+    
+    @classmethod
+    def eventpostfilter(cls, priority=Priority.NORMAL):
+        def call(func):
+            func.type = "eventpostfilter"
             func.priority = priority
             
             return func
@@ -127,6 +147,10 @@ class Base(object):
                     self.manager.registerMsgPreFilter(name, func, func.priority)
                 elif func.type == "eventprefilter":
                     self.manager.registerEventPreFilter(name, func, func.priority)
+                elif func.type == "msgpostfilter":
+                    self.manager.registerMsgPostFilter(name, func, func.priority)
+                elif func.type == "eventpostfilter":
+                    self.manager.registerEventPostFilter(name, func, func.priority)
     
     def blockEvent(self):
         self.manager._event_blocked = True

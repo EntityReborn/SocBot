@@ -17,13 +17,15 @@ class PluginAlreadyLoaded(Exception): pass
 class PluginNotLoaded(Exception): pass
 class UnregisterEvent(Exception): pass
 class UnregisterTrigger(Exception): pass
-class UnregisterPrefilter(Exception): pass
+class UnregisterFilter(Exception): pass
 
 class PluginTracker(object):
     def __init__(self, core, info, filename):
         self.core = core
         self.msgprefilters = []
         self.eventprefilters = []
+        self.msgpostfilters = []
+        self.eventpostfilters = []
         self.events = defaultdict(list)
         self.triggers = {}
         self.info = info
@@ -46,6 +48,12 @@ class PluginTracker(object):
     
     def getMsgPreFilters(self):
         return sorted(self.msgprefilters)
+    
+    def getEventPostFilters(self):
+        return sorted(self.eventpostfilters)
+    
+    def getMsgPostFilters(self):
+        return sorted(self.msgpostfilters)
     
     def getName(self):
         return self.info['general']['name'].lower()
@@ -129,7 +137,7 @@ class PluginTracker(object):
 
             name = self.info["general"]["name"]
 
-            if self.info["general"]["enabled"]:
+            if self.core.isEnabled(self.getName()):
                 self._instance = klass(self, self.info)
                 self._env = env
                 self._instance._initTrigs()
@@ -183,6 +191,18 @@ class PluginTracker(object):
         
         self.eventprefilters.append([func.priority, func])
         
+    def registerMsgPostFilter(self, pluginname, func, priority):
+        log.debug("registering '{0}' for msg postfilters with priority {1}".format(
+            func.__name__, func.priority))
+        
+        self.msgpostfilters.append([func.priority, func])
+        
+    def registerEventPostFilter(self, pluginname, func, priority):
+        log.debug("registering '{0}' for event postfilters with priority {1}".format(
+            func.__name__, func.priority))
+        
+        self.eventpostfilters.append([func.priority, func])
+        
     def registerEvent(self, pluginname, func, *events):
         eventline = ", ".join(events)
         log.debug("registering '{0}' for events '{1}'".format(
@@ -211,14 +231,27 @@ class PluginTracker(object):
 
 class PluginCore(object):
     """A class in charge of managing the lifetime of a plugin"""
-    def __init__(self, sstate, moduledir="plugins"):
+    def __init__(self, sstate, enablestate, moduledir="plugins"):
         self.sstate = sstate
+        self.enablestate = enablestate
+        
+        if not 'general' in enablestate:
+            enablestate['general'] = {}
+            enablestate.write()
+            
         self.log = log
         self.moduledir = os.path.abspath(moduledir)
         self.plugintrackers = {}
 
         log.debug("PluginManager instantiated with '{0}' for "
             "moduledir.".format(self.moduledir))
+        
+    def isEnabled(self, name):
+        if not name in self.enablestate['general']:
+            info = self.plugintrackers[name].info
+            return info['general']['enableddefault']
+        
+        return self.enablestate['general'][name]
         
     def getMsgPrefilters(self):
         flt = list()
@@ -233,6 +266,22 @@ class PluginCore(object):
         
         for tracker in self.plugintrackers.values():
             flt += tracker.getEventPreFilters()
+            
+        return [x[1] for x in sorted(flt)]
+    
+    def getMsgPostfilters(self):
+        flt = list()
+        
+        for tracker in self.plugintrackers.values():
+            flt += tracker.getMsgPostFilters()
+            
+        return [x[1] for x in sorted(flt)]
+    
+    def getEventPostfilters(self):
+        flt = list()
+        
+        for tracker in self.plugintrackers.values():
+            flt += tracker.getEventPostFilters()
             
         return [x[1] for x in sorted(flt)]
         
@@ -354,9 +403,8 @@ class PluginCore(object):
         if tracker.isLoaded():
             raise PluginAlreadyLoaded, name
         
-        tracker.info.reload()
-        tracker.info["general"]["enabled"] = True
-        tracker.info.write()
+        self.enablestate['general'][tracker.getName()] = True
+        self.enablestate.write()
 
         tracker.load()
         tracker.initialize()
@@ -378,9 +426,8 @@ class PluginCore(object):
 
         tracker.unload()
         
-        tracker.info.reload()
-        tracker.info["general"]["enabled"] = False
-        tracker.info.write()
+        self.enablestate['general'][tracker.getName()] = False
+        self.enablestate.write()
 
         return True
 

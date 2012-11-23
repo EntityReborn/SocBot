@@ -1,3 +1,4 @@
 [general]
-name = whois # human friendly name
+name = Whois # human friendly name
 modulefile = whois.py # Actual module to import to load plugins
+enableddefault = False

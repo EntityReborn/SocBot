@@ -1,6 +1,3 @@
 [general]
-name = Isup# human friendly name
+name = IsUp# human friendly name
 modulefile = isup.py# Actual module to import to load plugins
-enabled = True
-
-[permissions]

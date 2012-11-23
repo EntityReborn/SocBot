@@ -1,6 +1,4 @@
 [general]
-name = Nickserv# human friendly name
+name = NickServ# human friendly name
 modulefile = nickserv.py# Actual module to import to load plugins
-enabled = True
 usesconfig = True
-[permissions]

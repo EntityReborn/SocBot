@@ -1,4 +1,4 @@
 [general]
 name = Interpreters# human friendly name
 modulefile = interp.py# Actual module to import to load plugins
-enabled = True
+enableddefault = False

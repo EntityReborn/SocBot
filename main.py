@@ -54,8 +54,8 @@ class main(object):
 
     def loadPlugs(self):
         log.info("starting pluginmanager and loading plugins")
-
-        pm = PluginCore(self.sstate, self.config['directories']['plugins'])
+        enablestate = ConfigurationFile(self.config['directories']['plugins'] + "/enabled.conf")
+        pm = PluginCore(self.sstate, enablestate, self.config['directories']['plugins'])
         self.sstate["pluginmanager"] = pm
         
         pm.loadPlugins()
