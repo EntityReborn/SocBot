@@ -1,4 +1,4 @@
-import logging
+import logging, base64
 
 from twisted.words.protocols import irc
 from twisted.internet import protocol, reactor
@@ -51,19 +51,21 @@ class Connection(irc.IRCClient):
             
             self._ping_deferred = reactor.callLater(
                 self.factory.ping_interval, self._idle_ping)
-
+            
     def connectionMade(self):
         self.log.info("connected to server")
-
+        self.api.onCommand("IRC_CONNECTED", "", [])
+        
         self.factory.resetDelay()
         self.factory.onConnected(self)
-
+        
         irc.IRCClient.connectionMade(self)
+        
         self._ping_deferred = reactor.callLater(self.factory.ping_interval, self._idle_ping)
 
     def connectionLost(self, reason):
         self.log.info("lost connection: {0}".format(reason))
-        
+        self.api.onCommand("IRC_DISCONNECTED", "", [])
         if self._ping_deferred and self._ping_deferred.active():
             self._ping_deferred.cancel()
         if self._reconnect_deferred and self._reconnect_deferred.active():
@@ -218,8 +220,6 @@ class BotFactory(protocol.ReconnectingClientFactory):
         p.log = logging.getLogger("socbot.connection")
         p.api = API(p, self.users, self.sharedstate['pluginmanager'])
         p.api.log = logging.getLogger("socbot.connection")
-        
-        self.sharedstate = p
         
         return p
 
