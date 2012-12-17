@@ -3,7 +3,7 @@ import re
 from socbot.userdb import UnknownHostmask, NoSuchUser, InsufficientPerms
 from socbot.pluginbase import BadParams, StopProcessing
 from twisted.internet.defer import maybeDeferred
-from plugincore import MultipleTriggers
+from plugincore import MultipleTriggers, NoSuchTrigger, NoSuchTracker
 
 class API(object):
     sourceURL = "https://github.com/entityreborn/SocBot/"
@@ -221,6 +221,8 @@ class API(object):
                 self.sendResult(s, channel)
                         
                 return
+            except NoSuchTrigger:
+                retn = None
             
             if retn:
                 # We found a trigger, lets set it up for use.
@@ -230,12 +232,18 @@ class API(object):
                 self.log.debug("trigger: {0}".format(trigger))
             else:
                 # No trigger found, lets see if there's a tracker (plugin) loaded with that name
-                
-                tracker = self.plugins.getTracker(trigger)
-                
+                try:
+                    tracker = self.plugins.getTracker(trigger)
+                except NoSuchTracker:
+                    tracker = None
+                    
                 if not tracker and trigger.startswith("@PLUG:"):
                     trigger = trigger.partition(":")[2]
-                    tracker = self.plugins.getTracker(trigger)
+                    
+                    try:
+                        tracker = self.plugins.getTracker(trigger)
+                    except NoSuchTracker:
+                        tracker = None
             
                 if tracker:
                     # Found a plugin with that name

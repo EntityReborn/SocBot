@@ -13,6 +13,8 @@ class MultipleTriggers(Exception):
         self.trackers = tracks
      
 class NoSuchPlugin(Exception): pass
+class NoSuchTrigger(Exception): pass
+class NoSuchTracker(Exception): pass
 class PluginAlreadyLoaded(Exception): pass
 class PluginNotLoaded(Exception): pass
 class UnregisterEvent(Exception): pass
@@ -63,6 +65,8 @@ class PluginTracker(object):
         
         if trig in self.triggers.keys():
             return self.triggers[trig]
+        
+        raise NoSuchTrigger(trig)
         
     def getTriggers(self):
         return [trig.upper() for trig in self.triggers.keys() if not self.triggers[trig.upper()].hidden]
@@ -305,7 +309,7 @@ class PluginCore(object):
         if len(trigs) > 1:
             raise MultipleTriggers(trigs)
         elif not trigs:
-            return False
+            raise NoSuchTrigger(trigger)
 
         return trigs[0]
     
@@ -316,7 +320,7 @@ class PluginCore(object):
             if tracker.info['general']['name'].lower() == name:
                 return tracker
             
-        return None
+        raise NoSuchTracker(name)
 
     def triggerEvent(self, event, *args):
         log.debug("triggering '{0}'".format(event))

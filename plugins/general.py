@@ -1,5 +1,5 @@
 from socbot.pluginbase import Base, BadParams, StopProcessing
-from socbot.plugincore import MultipleTriggers
+from socbot.plugincore import MultipleTriggers, NoSuchTrigger, NoSuchTracker
 from socbot.tools import isChannel
 
 import datetime, fnmatch
@@ -181,13 +181,14 @@ class Plugin(Base):
     @Base.trigger("HELP")
     def on_help(self, bot, user, details):
         """HELP [trigger] - Show help for a given trigger (See COMMANDS for valid triggers)"""
+        
         if not details['splitmsg']:
             raise BadParams
         
         trigger = details['splitmsg'].pop(0)
         
         try:
-            func = self.manager.core.getTrigger(trigger)
+            tracker, func = self.manager.core.getTrigger(trigger)
         except MultipleTriggers as trigs:
             # Multiple triggers exist, lets list them to the user and die.
             plugs = [
@@ -196,11 +197,16 @@ class Plugin(Base):
             
             s = "The command '%s' is defined in more than one plugin: %s." % (trigger.lower(), ", ".join(plugs))
             return s
-        
+        except NoSuchTrigger:
+            func = None
+            
         if not func:
             # No trigger found, lets see if there's a tracker (plugin) loaded with that name
-            tracker = bot.plugins.getTracker(trigger)
-        
+            try:
+                tracker = bot.plugins.getTracker(trigger)
+            except NoSuchTracker:
+                tracker = None
+                
             if tracker:
                 # Found a plugin with that name
                 
@@ -209,11 +215,10 @@ class Plugin(Base):
                     
                     trigger = details['splitmsg'].pop(0)
                     details['trigger'] = trigger
-                    func = tracker.getTrigger(trigger)
                     
-                    if not func:
-                        # But that trigger doesn't exist!
-                        
+                    try:
+                        func = tracker.getTrigger(trigger)
+                    except NoSuchTrigger:
                         s = "The plugin '%s' does not have the command '%s'." % (tracker.getName().capitalize(), trigger)
                         return s
                     
