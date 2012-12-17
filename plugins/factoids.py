@@ -12,7 +12,7 @@ class FactType():
         self.parts = p
     
     def isGlobal(self):
-        val = self.parts[0].lower() == "-g"
+        val = self.parts and self.parts[0].lower() == "-g"
         return val
     
     def isValid(self):
