@@ -318,13 +318,13 @@ class API(object):
             if msg == True:
                 msg = "Done."
             
-            self.msg(target, str(msg))
+            self.msg(target, str(msg.encode("UTF-8")))
             
     def name(self):
         return self.connection.factory.name
             
     def serverConfig(self):
-        return self.baseConfig()['servers'][self.name()]
+        return self.baseConfig()['connection']
     
     def generalConfig(self):
         return self.baseConfig()['general']

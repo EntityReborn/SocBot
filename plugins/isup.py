@@ -71,7 +71,7 @@ class Plugin(Base):
         else:
             url = details['splitmsg'][0]
             
-            match = titlepattern.match(url)
+            match = titlepattern.match(str(url))
             
             if not match:
                 url = "http://" + url
@@ -82,7 +82,7 @@ class Plugin(Base):
 
         try:
             agent = RedirectAgent(Agent(reactor))
-            d = agent.request('GET', url)
+            d = agent.request('GET', str(url))
             
             def cbRequest(response):
                 finished = Deferred()

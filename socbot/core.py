@@ -66,6 +66,7 @@ class Connection(irc.IRCClient):
     def connectionLost(self, reason):
         self.log.info("lost connection: {0}".format(reason))
         self.api.onCommand("IRC_DISCONNECTED", "", [])
+        
         if self._ping_deferred and self._ping_deferred.active():
             self._ping_deferred.cancel()
         if self._reconnect_deferred and self._reconnect_deferred.active():
