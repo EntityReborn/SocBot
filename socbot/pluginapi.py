@@ -210,9 +210,11 @@ class API(object):
             
             try:
                 # See if a trigger exists.
+                
                 retn = self.plugins.getTrigger(trigger)
             except MultipleTriggers as trigs:
                 # Multiple triggers exist, lets list them to the user and die.
+                
                 plugs = [x[0].getName() for x in trigs.trackers]
                 
                 s = "The command '%s' is defined in more than one plugin: %s." % (trigger.lower(), ", ".join(plugs))
@@ -222,10 +224,13 @@ class API(object):
             
             if retn:
                 # We found a trigger, lets set it up for use.
+                
                 tracker, func = retn
+                
                 self.log.debug("trigger: {0}".format(trigger))
             else:
                 # No trigger found, lets see if there's a tracker (plugin) loaded with that name
+                
                 tracker = self.plugins.getTracker(trigger)
                 
                 if not tracker and trigger.startswith("@PLUG:"):
@@ -234,6 +239,10 @@ class API(object):
             
                 if tracker:
                     # Found a plugin with that name
+                    
+                    if not tracker.isLoaded():
+                        self.sendResult("The '%s' plugin is currently not loaded." % tracker.getName(), channel)
+                        return
                     
                     if details['splitmsg']:
                         # An argument was given, lets use it as a trigger to look for.
@@ -253,9 +262,13 @@ class API(object):
                         # Lets list the triggers this plugin has exposed publicly.
                         
                         trigs = [x.lower() for x in tracker.getTriggers()]
-                        s = "The plugin '%s' has the following commands available: %s" % (tracker.getName(), ", ".join(trigs))
-                        self.sendResult(s, channel)
                         
+                        if trigs:
+                            s = "The plugin '%s' has the following commands available: %s" % (tracker.getName(), ", ".join(trigs))
+                        else:
+                            s = "The plugin '%s' does not expose any commands." % tracker.getName()
+                        
+                        self.sendResult(s, channel)
                         return
                 else:
                     # Nothing found. Lets see if any plugins do anything here.
@@ -279,7 +292,7 @@ class API(object):
             self.connection.msg(target, func.__doc__)
         elif err.type == InsufficientPerms:
             notificationtype = self.generalConfig()['permerrornotification']
-            message = "Insufficient permissions (%s). Did you forget to log in?" % err.value.args[0]
+            message = "Insufficient permissions (%s). Did you forget to log in? (use the 'login' command to log in)" % err.value.args[0]
             
             if notificationtype == "NOTICE":
                 self.notice(nick, message)
