@@ -90,8 +90,8 @@ class RegisteredUser(Base):
     username = Column(String, unique=True)
     passhash = Column(String)
     regdate = Column(DateTime)
-    hostmasks = Column(TextPickleType(mutable=True, pickler=json))
-    perms = Column(TextPickleType(mutable=True, pickler=json))
+    hostmasks = Column(TextPickleType(pickler=json))
+    perms = Column(TextPickleType(pickler=json))
     email = Column(String)
     
     def __init__(self, username, passhash, email, regdate=datetime.datetime.now(),
