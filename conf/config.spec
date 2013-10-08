@@ -10,6 +10,7 @@
     name = string()
     host = string()
     port = integer(default=6667)
+    password = string(default="")
     nickname = string(default="SocBot")
     [[channels]]
     	[[[__many__]]]

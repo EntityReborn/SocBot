@@ -101,6 +101,10 @@ class API(object):
     def onCommand(self, command, prefix, params):
         self.log.debug("command `{0}`, from prefix `{1}`".format(
             command, prefix))
+        
+        if command == "IRC_CONNECTED":
+            if self.serverConfig()["password"]:
+                self.sendLine('PASS ' + self.serverConfig()["password"])
 
         if command == "ERROR":
             self.log.debug("command `{0}`, from prefix `{1}`, with params `{2}`".format(
